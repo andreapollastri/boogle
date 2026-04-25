@@ -1,0 +1,997 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Boogle API",
+    "version": "1.3.0",
+    "description": "Boogle exposes `POST /api/log` for monitored apps (project key + API token) and a Sanctum **admin** API under `/api/admin` (requires `Bearer` token and `is_admin` on the user; non-admins receive **403**). Projects, groups, and issues support optional group-based issue codes (`#BUG12`, custom prefix, or `#OUT` for uptime)."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Projects",
+      "description": "Create and manage monitored projects."
+    },
+    {
+      "name": "Groups",
+      "description": "Manage project groups."
+    },
+    {
+      "name": "Exceptions",
+      "description": "Query and update exception records."
+    },
+    {
+      "name": "Ingestion",
+      "description": "Client package posts exceptions (no admin bearer token)."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sanctumBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Token"
+      }
+    },
+    "schemas": {
+      "GroupRef": {
+        "type": "object",
+        "description": "Nested group on project responses",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" }
+        }
+      },
+      "UserBrief": {
+        "type": "object",
+        "description": "User attached to a status event (2FA secrets are never included)",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" }
+        }
+      },
+      "ExceptionStatusEvent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "exception_id": { "type": "string", "format": "uuid" },
+          "user_id": { "type": "string", "format": "uuid", "nullable": true },
+          "source": {
+            "type": "string",
+            "description": "Where the change originated (e.g. `api`, `panel`)",
+            "enum": ["api", "panel", "bulk", "system", "view"]
+          },
+          "from_status": { "type": "string" },
+          "to_status": { "type": "string" },
+          "comment": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "user": {
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/UserBrief" }]
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "uptime_enabled": {
+            "type": "boolean"
+          },
+          "uptime_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "group_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "group": {
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/GroupRef" }],
+            "description": "Present when the project belongs to a group (list/show/update responses)"
+          },
+          "key": {
+            "type": "string"
+          },
+          "api_token": {
+            "type": "string"
+          }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "projects_count": {
+            "type": "integer"
+          },
+          "issue_prefix": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional prefix for error issues (e.g. SITE → #SITE1). Omitted/empty = BUG. OUT is reserved for uptime."
+          }
+        }
+      },
+      "ExceptionRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "exception": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "file": {
+            "type": "string",
+            "nullable": true
+          },
+          "line": {
+            "type": "integer",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "READ",
+              "FIXED",
+              "DONE"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issue_code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Display code e.g. #BUG12 or #OUT2",
+            "example": "#BUG12"
+          },
+          "issue_prefix": {
+            "type": "string",
+            "nullable": true
+          },
+          "issue_number": {
+            "type": "integer",
+            "nullable": true
+          },
+          "user": {
+            "type": "object",
+            "nullable": true,
+            "description": "User context from the monitored app (id, email, …)"
+          },
+          "http": {
+            "type": "object",
+            "nullable": true,
+            "description": "Request context: url, query, payload, method, etc."
+          },
+          "raw_exception": {
+            "type": "object",
+            "nullable": true,
+            "description": "Full client exception object (only on `GET .../exceptions/{id}` and after `PATCH .../status`)"
+          },
+          "status_events": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ExceptionStatusEvent" },
+            "description": "Status change history (present on single-exception GET and after status PATCH)"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "sanctumBearer": []
+    }
+  ],
+  "paths": {
+    "/api/log": {
+      "post": {
+        "tags": [
+          "Ingestion"
+        ],
+        "summary": "Ingest an exception (project key + token)",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "token",
+                  "exception"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string"
+                  },
+                  "exception": {
+                    "type": "object",
+                    "description": "Full payload from the client: `http`, `user`, `executor`, `host`, `method`, `fullUrl`, etc."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted; exception is queued for processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "enum": ["ok"] }
+                  }
+                },
+                "example": { "status": "ok" }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid `key` / `token`",
+            "content": {
+              "application/json": {
+                "example": { "error": "Invalid project credentials." }
+              }
+            }
+          },
+          "422": { "description": "Validation error (e.g. missing `exception`)" }
+        }
+      }
+    },
+    "/api/admin/projects": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "List projects",
+        "responses": {
+          "200": {
+            "description": "Paginated list (25 per page), ordered by title",
+            "content": {
+              "application/json": {
+                "example": {
+                  "current_page": 1,
+                  "data": [
+                    {
+                      "id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0",
+                      "title": "Boogle Web App",
+                      "url": "https://boogle.app",
+                      "uptime_enabled": true,
+                      "uptime_url": "https://boogle.app/health",
+                      "description": "Main production app",
+                      "group_id": "2f189df3-52ce-41e3-b8c6-6c211c4d8f27",
+                      "group": { "id": "2f189df3-52ce-41e3-b8c6-6c211c4d8f27", "title": "Core services" },
+                      "key": "PROJECT_KEY",
+                      "api_token": "PROJECT_API_TOKEN"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" }
+        }
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create project",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "uptime_enabled": {
+                    "type": "boolean"
+                  },
+                  "uptime_url": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "group_id": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "example": {
+                "title": "Boogle API",
+                "url": "https://api.boogle.app",
+                "uptime_enabled": true,
+                "uptime_url": "https://api.boogle.app/up",
+                "description": "Public backend API"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created (key and `api_token` are generated if omitted)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0",
+                  "title": "Boogle API",
+                  "url": "https://api.boogle.app",
+                  "uptime_enabled": true,
+                  "uptime_url": "https://api.boogle.app/up",
+                  "description": "Public backend API",
+                  "group_id": null,
+                  "group": null,
+                  "key": "PROJECT_KEY",
+                  "api_token": "PROJECT_API_TOKEN"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" },
+          "422": { "description": "Validation error" }
+        }
+      }
+    },
+    "/api/admin/projects/{project}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get project",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project detail",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0",
+                  "title": "Boogle API",
+                  "url": "https://api.boogle.app",
+                  "uptime_enabled": true,
+                  "uptime_url": "https://api.boogle.app/up",
+                  "description": "Public backend API",
+                  "group_id": null,
+                  "group": null,
+                  "key": "PROJECT_KEY",
+                  "api_token": "PROJECT_API_TOKEN"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Update project",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "uptime_enabled": {
+                    "type": "boolean"
+                  },
+                  "uptime_url": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "group_id": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "example": {
+                "uptime_enabled": false,
+                "uptime_url": null
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0",
+                  "title": "Boogle API",
+                  "url": "https://api.boogle.app",
+                  "uptime_enabled": false,
+                  "uptime_url": null,
+                  "description": "Public backend API",
+                  "group_id": null,
+                  "group": null,
+                  "key": "PROJECT_KEY",
+                  "api_token": "PROJECT_API_TOKEN"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" },
+          "422": { "description": "Validation error" }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Delete project",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project deleted (soft delete)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "deleted"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" }
+        }
+      }
+    },
+    "/api/admin/groups": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "List groups",
+        "responses": {
+          "200": {
+            "description": "Paginated list (25 per page), includes `issue_prefix` and `projects_count`",
+            "content": {
+              "application/json": {
+                "example": {
+                  "current_page": 1,
+                  "data": [
+                    {
+                      "id": "2f189df3-52ce-41e3-b8c6-6c211c4d8f27",
+                      "title": "Core services",
+                      "description": "Main product services",
+                      "issue_prefix": "CORE",
+                      "projects_count": 5
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" }
+        }
+      },
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Create group",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string", "nullable": true },
+                  "issue_prefix": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Optional prefix for app errors (e.g. SITE → #SITE1). Empty omits to BUG. `OUT` is reserved for uptime."
+                  }
+                }
+              },
+              "example": {
+                "title": "Frontend",
+                "description": "UI apps and websites",
+                "issue_prefix": "FE"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Group created (owned by the authenticated user)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "2f189df3-52ce-41e3-b8c6-6c211c4d8f27",
+                  "title": "Frontend",
+                  "description": "UI apps and websites",
+                  "issue_prefix": "FE"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" },
+          "422": { "description": "Validation error (invalid `issue_prefix` or rules)" }
+        }
+      }
+    },
+    "/api/admin/groups/{group}": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Get group",
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group detail",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "2f189df3-52ce-41e3-b8c6-6c211c4d8f27",
+                  "title": "Frontend",
+                  "description": "UI apps and websites",
+                  "issue_prefix": "FE",
+                  "projects_count": 3
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Update group",
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string", "nullable": true },
+                  "issue_prefix": { "type": "string", "nullable": true }
+                }
+              },
+              "example": {
+                "title": "Frontend and Web",
+                "description": "UI apps and websites",
+                "issue_prefix": "FE"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Group updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "2f189df3-52ce-41e3-b8c6-6c211c4d8f27",
+                  "title": "Frontend and Web",
+                  "description": "UI apps and websites",
+                  "issue_prefix": "FE",
+                  "projects_count": 4
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" },
+          "422": { "description": "Validation error" }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Delete group",
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "deleted"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" }
+        }
+      }
+    },
+    "/api/admin/exceptions": {
+      "get": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "List exceptions (all projects)",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "description": "Filter by project UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "READ",
+                "FIXED",
+                "DONE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list (50 per page); each item includes `project` (id, title) and public fields (e.g. `issue_code`, `user`, `http`). `raw_exception` is hidden in list views.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "current_page": 1,
+                  "data": [
+                    {
+                      "id": "4a447f79-fbd2-4de8-b96c-04528ab8fe03",
+                      "project_id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0",
+                      "project": { "id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0", "title": "Boogle API" },
+                      "exception": "ProjectOfflineException",
+                      "error": "Uptime check failed with HTTP status 503.",
+                      "file": null,
+                      "line": null,
+                      "status": "OPEN",
+                      "issue_code": "#OUT1",
+                      "created_at": "2026-04-25T15:20:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" }
+        }
+      }
+    },
+    "/api/admin/projects/{project}/exceptions": {
+      "get": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "List exceptions for a project",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["OPEN", "READ", "FIXED", "DONE"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list (50 per page), optionally filtered by `status`",
+            "content": {
+              "application/json": {
+                "example": {
+                  "current_page": 1,
+                  "data": [
+                    {
+                      "id": "4a447f79-fbd2-4de8-b96c-04528ab8fe03",
+                      "project_id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0",
+                      "exception": "ProjectOfflineException",
+                      "status": "OPEN",
+                      "issue_code": "#OUT1",
+                      "created_at": "2026-04-25T15:20:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" }
+        }
+      }
+    },
+    "/api/admin/projects/{project}/exceptions/{exception}": {
+      "get": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "Get exception detail",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exception",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exception detail: includes `raw_exception` (full client payload), `user`, `http`, and `status_events` (with `user` on each event)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "4a447f79-fbd2-4de8-b96c-04528ab8fe03",
+                  "project_id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0",
+                  "exception": "ProjectOfflineException",
+                  "error": "Uptime check failed with HTTP status 503.",
+                  "status": "OPEN",
+                  "issue_code": "#OUT1",
+                  "raw_exception": { "class": "ProjectOfflineException" },
+                  "status_events": [],
+                  "created_at": "2026-04-25T15:20:00Z"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" },
+          "404": { "description": "Project/exception mismatch or not found" }
+        }
+      }
+    },
+    "/api/admin/projects/{project}/exceptions/{exception}/status": {
+      "patch": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "Update exception status (records API status event with optional comment)",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exception",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "OPEN",
+                      "READ",
+                      "FIXED",
+                      "DONE"
+                    ]
+                  },
+                  "comment": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 10000,
+                    "description": "Optional note stored on the status history (same row as the API-originated event)"
+                  }
+                }
+              },
+              "example": {
+                "status": "DONE",
+                "comment": "Recovered after deploy"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exception updated; response includes `status_events` and `raw_exception`",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "4a447f79-fbd2-4de8-b96c-04528ab8fe03",
+                  "project_id": "e2fa2ce4-b8a2-4f5a-973d-f89a8ff3f4c0",
+                  "status": "DONE",
+                  "status_events": [
+                    {
+                      "source": "api",
+                      "from_status": "OPEN",
+                      "to_status": "DONE",
+                      "comment": "Recovered after deploy"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Authenticated user is not an admin" },
+          "404": { "description": "Project/exception mismatch or not found" },
+          "422": { "description": "Validation error" }
+        }
+      }
+    }
+  }
+}
