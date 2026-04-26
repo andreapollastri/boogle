@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\ExceptionController;
 use App\Http\Controllers\Panel\GroupController;
@@ -10,6 +11,8 @@ use App\Http\Controllers\Panel\ProfileController;
 use App\Http\Controllers\Panel\ProjectController;
 use App\Http\Controllers\Panel\UserController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::view('api/docs', 'api.docs')->name('api.docs');
 
@@ -31,7 +34,7 @@ Route::post('logout', [LoginController::class, 'destroy'])
 
 // Panel (authenticated) at root
 Route::middleware(['auth', 'twofactor'])->name('panel.')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('projects', ProjectController::class);
     Route::get('projects/{project}/installation', [ProjectController::class, 'installation'])
