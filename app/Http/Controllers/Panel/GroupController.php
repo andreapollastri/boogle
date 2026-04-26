@@ -15,6 +15,7 @@ class GroupController extends Controller
             ->visibleGroupsQuery()
             ->withCount('projects')
             ->orderBy('title')
+            ->orderBy('id')
             ->get();
 
         return view('panel.groups.index', compact('groups'));

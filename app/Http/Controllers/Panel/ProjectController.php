@@ -33,17 +33,22 @@ class ProjectController extends Controller
                 'exceptions as total_count',
             ])
             ->with('group')
-            ->orderByDesc('last_error_at')
+            ->orderBy('title')
+            ->orderBy('id')
             ->get();
 
-        $groups = $user->visibleGroupsQuery()->withCount('projects')->orderBy('title')->get();
+        $groups = $user->visibleGroupsQuery()
+            ->withCount('projects')
+            ->orderBy('title')
+            ->orderBy('id')
+            ->get();
 
         return view('panel.projects.index', compact('projects', 'groups', 'selectedGroupId'));
     }
 
     public function create(Request $request)
     {
-        $groups = $request->user()->visibleGroupsQuery()->orderBy('title')->get();
+        $groups = $request->user()->visibleGroupsQuery()->orderBy('title')->orderBy('id')->get();
 
         return view('panel.projects.create', compact('groups'));
     }
@@ -236,7 +241,7 @@ class ProjectController extends Controller
     {
         $this->authorize($request, $project);
         abort_unless($request->user()->isAdmin(), 403);
-        $groups = $request->user()->visibleGroupsQuery()->orderBy('title')->get();
+        $groups = $request->user()->visibleGroupsQuery()->orderBy('title')->orderBy('id')->get();
 
         return view('panel.projects.edit', compact('project', 'groups'));
     }
