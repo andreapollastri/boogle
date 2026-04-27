@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "andreapollastri/checkpoint": "^1.0",
         "bacon/bacon-qr-code": "^3.1",
         "cipi/agent": "^1.5",
         "laravel/framework": "^13.0",
