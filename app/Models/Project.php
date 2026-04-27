@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Project extends Model
@@ -84,5 +85,30 @@ class Project extends Model
     public function regenerateApiToken(): void
     {
         $this->update(['api_token' => Str::random(60)]);
+    }
+
+    public static function decrementTotalExceptionsBy(string $projectId, int $amount): void
+    {
+        if ($amount <= 0) {
+            return;
+        }
+
+        self::query()->whereKey($projectId)->update([
+            'total_exceptions' => DB::raw('GREATEST(COALESCE(total_exceptions, 0) - '.(int) $amount.', 0)'),
+        ]);
+    }
+
+    /**
+     * Set last_error_at to the latest remaining exception's created_at, or null if none.
+     */
+    public static function syncLastErrorAtFromExceptions(string $projectId): void
+    {
+        $latest = ExceptionRecord::query()
+            ->where('project_id', $projectId)
+            ->max('created_at');
+
+        self::query()->whereKey($projectId)->update([
+            'last_error_at' => $latest,
+        ]);
     }
 }

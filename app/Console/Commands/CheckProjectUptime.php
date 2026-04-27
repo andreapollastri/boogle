@@ -9,7 +9,6 @@ use App\Models\UptimeCheck;
 use App\Notifications\ProjectOfflineAlert;
 use App\Notifications\ProjectOnlineAlert;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class CheckProjectUptime extends Command
@@ -37,11 +36,9 @@ class CheckProjectUptime extends Command
             ->delete();
 
         foreach ($expiredByProject as $projectId => $total) {
-            Project::query()
-                ->where('id', $projectId)
-                ->update([
-                    'total_exceptions' => DB::raw('GREATEST(total_exceptions - '.(int) $total.', 0)'),
-                ]);
+            $id = (string) $projectId;
+            Project::decrementTotalExceptionsBy($id, (int) $total);
+            Project::syncLastErrorAtFromExceptions($id);
         }
 
         Project::query()

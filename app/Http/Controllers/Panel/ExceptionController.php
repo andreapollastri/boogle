@@ -164,7 +164,11 @@ class ExceptionController extends Controller
         $query = $project->exceptions()->whereIn('id', $data['ids']);
 
         if ($data['action'] === 'delete') {
-            $query->delete();
+            $deleted = $query->delete();
+            if ($deleted > 0) {
+                Project::decrementTotalExceptionsBy($project->id, (int) $deleted);
+                Project::syncLastErrorAtFromExceptions($project->id);
+            }
         } else {
             $target = $data['action'];
             foreach ($query->cursor() as $ex) {
