@@ -68,21 +68,30 @@ class CheckProjectUptime extends Command
 
         $startedAt = microtime(true);
 
-        try {
-            $response = Http::timeout(10)
-                ->connectTimeout(5)
-                ->withoutRedirecting()
-                ->get($url);
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $response = Http::timeout(10)
+                    ->connectTimeout(5)
+                    ->withoutRedirecting()
+                    ->get($url);
 
-            $httpStatus = $response->status();
+                $httpStatus = $response->status();
 
-            if ($response->serverError() || $response->clientError()) {
+                if ($response->serverError() || $response->clientError()) {
+                    $isOffline = true;
+                    $reason = "Uptime check failed with HTTP status {$response->status()}.";
+                }
+                break;
+            } catch (\Throwable $throwable) {
+                $reason = $throwable->getMessage();
+
+                if ($attempt === 1 && self::isCurlOperationTimedOutMessage($reason)) {
+                    continue;
+                }
+
                 $isOffline = true;
-                $reason = "Uptime check failed with HTTP status {$response->status()}.";
+                break;
             }
-        } catch (\Throwable $throwable) {
-            $isOffline = true;
-            $reason = $throwable->getMessage();
         }
 
         $responseTimeMs = (int) round((microtime(true) - $startedAt) * 1000);
@@ -198,5 +207,14 @@ class CheckProjectUptime extends Command
 
             $user->notify(new ProjectOfflineAlert($project, $exception));
         }
+    }
+
+    /**
+     * LIBCURLE_OPERATION_TIMEDOUT (28): flaky networks should get one immediate retry in the same run.
+     */
+    private static function isCurlOperationTimedOutMessage(string $message): bool
+    {
+        return stripos($message, 'cURL error 28') !== false
+            || stripos($message, 'curl error 28') !== false;
     }
 }
