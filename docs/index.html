@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boogle — Self-hosted Exception Tracker</title>
+  <meta name="description" content="Self-hosted Laravel exception tracker and uptime monitor. Ingest bugs from your apps, group issues, get digests, and keep services online — on your own infrastructure.">
+  <meta property="og:title" content="Boogle — Self-hosted Exception Tracker">
+  <meta property="og:description" content="Catch exceptions and uptime outages before your users do. Open-source Laravel platform with client package, Admin API, and digests.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://boogle.web.ap.it">
+  <meta name="theme-color" content="#e11d48">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #111827;
+      --ink-soft: #1f2937;
+      --muted: #6b7280;
+      --line: #d1d5db;
+      --paper: #eef1f6;
+      --surface: #f5f7fb;
+      --white: #ffffff;
+      --signal: #e11d48;
+      --signal-deep: #be123c;
+      --phosphor: #fb7185;
+      --terminal: #111827;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --sans: "Source Sans 3", Georgia, sans-serif;
+      --display: "Space Grotesk", var(--sans);
+      --max: 1120px;
+      --docs-sidebar: 200px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 5rem;
+    }
+
+    body {
+      font-family: var(--sans);
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+      font-size: 1.0625rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+    code, pre { font-family: var(--mono); }
+
+    .atmosphere {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 45% at 8% -8%, rgba(225, 29, 72, 0.12), transparent 55%),
+        radial-gradient(ellipse 55% 40% at 95% 15%, rgba(17, 24, 39, 0.06), transparent 50%),
+        linear-gradient(180deg, var(--surface) 0%, var(--paper) 42%, var(--paper) 100%);
+    }
+
+    .atmosphere::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(17, 24, 39, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(17, 24, 39, 0.035) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(180deg, #000 0%, transparent 65%);
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 1.5rem;
+      background: rgba(245, 247, 251, 0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-brand {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.04em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      color: var(--ink);
+    }
+
+    .nav-brand svg { width: 1.55rem; height: 1.55rem; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.35rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--ink-soft);
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--signal); }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.45rem 0.85rem;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--white) !important;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .nav-cta:hover {
+      background: var(--signal);
+      border-color: var(--signal);
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: 0;
+      cursor: pointer;
+      padding: 0.35rem;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--ink);
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .hero {
+      position: relative;
+      min-height: calc(100vh - 3.6rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overflow: hidden;
+    }
+
+    .hero-plane {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 90% 70% at 70% 40%, rgba(251, 113, 133, 0.16), transparent 55%),
+        linear-gradient(165deg, #0b1020 0%, #111827 45%, #2a1220 100%);
+    }
+
+    .hero-plane::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(251, 113, 133, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(251, 113, 133, 0.055) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: linear-gradient(180deg, #000 20%, transparent 90%);
+      animation: grid-drift 28s linear infinite;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: var(--max);
+      width: 100%;
+      margin: 0 auto;
+      padding: 4rem 1.5rem 2.25rem;
+    }
+
+    .hero-brand {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(3.4rem, 12vw, 7.5rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+      color: var(--white);
+      animation: rise 0.75s ease both;
+    }
+
+    .hero-brand span { color: var(--phosphor); }
+
+    .hero-content h1 {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: clamp(1.35rem, 3vw, 1.85rem);
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      color: rgba(255, 255, 255, 0.92);
+      margin: 1.15rem 0 0.65rem;
+      max-width: none;
+      animation: rise 0.75s 0.08s ease both;
+    }
+
+    .hero-content > p {
+      color: rgba(229, 231, 235, 0.72);
+      max-width: none;
+      font-size: 1.05rem;
+      animation: rise 0.75s 0.14s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      animation: rise 0.75s 0.2s ease both;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.7rem 1.1rem;
+      font-family: var(--sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: var(--phosphor);
+      color: var(--ink);
+      border-color: var(--phosphor);
+    }
+
+    .btn-primary:hover {
+      background: #fda4af;
+      border-color: #fda4af;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.9);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .hero-terminal {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      margin-top: auto;
+      background: rgba(8, 10, 18, 0.92);
+      border-top: 1px solid rgba(251, 113, 133, 0.28);
+      animation: rise 0.85s 0.22s ease both;
+    }
+
+    .hero-terminal-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 1.25rem 1.5rem 1.5rem;
+      font-family: var(--mono);
+      font-size: clamp(0.78rem, 1.6vw, 0.92rem);
+      line-height: 1.65;
+      color: rgba(229, 231, 235, 0.88);
+      overflow-x: auto;
+    }
+
+    .hero-terminal .prompt { color: var(--phosphor); }
+    .hero-terminal .dim { color: rgba(229, 231, 235, 0.45); }
+    .hero-terminal .ok { color: #86efac; }
+    .hero-terminal .fail { color: #fda4af; }
+    .hero-terminal .val { color: #7dd3fc; }
+
+    .caret {
+      display: inline-block;
+      width: 0.55ch;
+      height: 1.05em;
+      background: var(--phosphor);
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      animation: blink 1.05s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes grid-drift {
+      from { background-position: 0 0; }
+      to { background-position: 40px 40px; }
+    }
+
+    .docs {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 3.5rem 1.5rem 5rem;
+      display: grid;
+      grid-template-columns: var(--docs-sidebar) minmax(0, 1fr);
+      gap: 3rem;
+    }
+
+    .docs-nav {
+      position: sticky;
+      top: 5rem;
+      align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .docs-nav-label {
+      font-family: var(--display);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.55rem;
+    }
+
+    .docs-nav a {
+      text-decoration: none;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+      font-weight: 500;
+      padding: 0.35rem 0.5rem;
+      border-left: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .docs-nav a:hover,
+    .docs-nav a.active {
+      color: var(--signal-deep);
+      border-left-color: var(--signal);
+      background: rgba(225, 29, 72, 0.06);
+    }
+
+    .docs-main { min-width: 0; }
+
+    .docs-main section {
+      padding-bottom: 2.75rem;
+      margin-bottom: 2.75rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .docs-main section:last-of-type {
+      border-bottom: 0;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .docs-main h2 {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(1.55rem, 2.8vw, 1.9rem);
+      letter-spacing: -0.035em;
+      margin-bottom: 0.55rem;
+    }
+
+    .docs-main h3 {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      margin: 1.75rem 0 0.55rem;
+    }
+
+    .docs-main p,
+    .docs-main li { color: var(--ink-soft); }
+
+    .docs-main p + p { margin-top: 0.85rem; }
+
+    .docs-main .lead {
+      font-size: 1.12rem;
+      color: var(--muted);
+      max-width: 40rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .docs-main ul,
+    .docs-main ol {
+      margin: 0.85rem 0 0 1.2rem;
+    }
+
+    .docs-main li + li { margin-top: 0.35rem; }
+
+    .docs-main code {
+      font-size: 0.88em;
+      background: rgba(17, 24, 39, 0.06);
+      padding: 0.12em 0.35em;
+      border-radius: 3px;
+    }
+
+    .feature-list {
+      display: grid;
+      gap: 0;
+      border-top: 1px solid var(--line);
+      margin-top: 1.25rem;
+    }
+
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.35rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    @media (min-width: 700px) {
+      .feature-row {
+        grid-template-columns: 11rem 1fr;
+        gap: 1.25rem;
+        align-items: baseline;
+      }
+    }
+
+    .feature-row .name {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--ink);
+    }
+
+    .feature-row .desc {
+      color: var(--muted);
+      font-size: 0.97rem;
+    }
+
+    .code-block {
+      position: relative;
+      margin: 1rem 0;
+      background: var(--terminal);
+      color: #e5e7eb;
+      border: 1px solid #1f2937;
+      overflow: hidden;
+    }
+
+    .code-block pre {
+      margin: 0;
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      white-space: pre;
+    }
+
+    .code-block .copy {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.55rem;
+      border: 1px solid rgba(251, 113, 133, 0.35);
+      background: rgba(17, 24, 39, 0.85);
+      color: var(--phosphor);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 0.28rem 0.5rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .code-block .copy:hover,
+    .code-block .copy.copied {
+      background: var(--phosphor);
+      color: var(--ink);
+      border-color: var(--phosphor);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin: 1rem 0;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.7rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(17, 24, 39, 0.03);
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    td code { white-space: nowrap; }
+
+    .note {
+      margin: 1.1rem 0;
+      padding: 0.9rem 1rem;
+      border-left: 3px solid var(--signal);
+      background: rgba(225, 29, 72, 0.07);
+      color: var(--ink-soft);
+      font-size: 0.97rem;
+    }
+
+    .note strong { color: var(--ink); }
+
+    .steps {
+      display: grid;
+      gap: 0;
+      border-top: 1px solid var(--line);
+      margin-top: 1.25rem;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 2.5rem 1fr;
+      gap: 1rem;
+      padding: 1.1rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .step .n {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding-top: 0.2rem;
+    }
+
+    .step h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.05rem;
+    }
+
+    .step p { margin: 0; }
+
+    .pair {
+      margin-top: 3rem;
+      padding: 1.75rem 0 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .pair h2 { margin-bottom: 0.4rem; }
+
+    .pair .btn {
+      margin-top: 1.1rem;
+      background: var(--ink);
+      color: var(--white);
+      border-color: var(--ink);
+    }
+
+    .pair .btn:hover {
+      background: var(--signal);
+      border-color: var(--signal);
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 2rem 1.5rem 2.75rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    footer a {
+      color: var(--signal-deep);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    footer p + p { margin-top: 0.35rem; }
+
+    @media (max-width: 880px) {
+      .docs {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding-top: 2.5rem;
+      }
+
+      .docs-nav {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .docs-nav-label { width: 100%; }
+
+      .docs-nav a {
+        border-left: 0;
+        border-bottom: 2px solid transparent;
+        padding: 0.3rem 0.55rem;
+      }
+
+      .docs-nav a:hover,
+      .docs-nav a.active {
+        border-left-color: transparent;
+        border-bottom-color: var(--signal);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .hamburger { display: flex; }
+
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 0.5rem 1rem 1rem;
+        background: rgba(245, 247, 251, 0.97);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav-links.open { display: flex; }
+
+      .nav-links a {
+        padding: 0.75rem 0.25rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav-cta { justify-content: center; margin-top: 0.5rem; border: 0; }
+
+      .hero { min-height: auto; }
+      .hero-content { padding-top: 3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+
+  <nav class="nav">
+    <a class="nav-brand" href="/">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#111827"/>
+        <ellipse cx="16" cy="18.4" rx="5.4" ry="6.6" fill="#fb7185"/>
+        <ellipse cx="16" cy="10.4" rx="3.5" ry="3.2" fill="#fda4af"/>
+        <circle cx="14.5" cy="9.9" r="0.95" fill="#111827"/>
+        <circle cx="17.5" cy="9.9" r="0.95" fill="#111827"/>
+        <path d="M14.1 8 C12.2 5.8 10.5 5.1 8.8 5.4" fill="none" stroke="#fda4af" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M17.9 8 C19.8 5.8 21.5 5.1 23.2 5.4" fill="none" stroke="#fda4af" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="8.8" cy="5.4" r="1.15" fill="#e11d48"/>
+        <circle cx="23.2" cy="5.4" r="1.15" fill="#e11d48"/>
+        <ellipse cx="10" cy="15" rx="4" ry="2.2" transform="rotate(-30 10 15)" fill="#fda4af" opacity=".55"/>
+        <ellipse cx="22" cy="15" rx="4" ry="2.2" transform="rotate(30 22 15)" fill="#fda4af" opacity=".55"/>
+        <path d="M11.2 16.6 7.2 14.8M11 19.4 6.8 19.6M11.4 22.2 7.4 24.4" fill="none" stroke="#e11d48" stroke-width="1.35" stroke-linecap="round"/>
+        <path d="M20.8 16.6 24.8 14.8M21 19.4 25.2 19.6M20.6 22.2 24.6 24.4" fill="none" stroke="#e11d48" stroke-width="1.35" stroke-linecap="round"/>
+        <ellipse cx="16" cy="17.4" rx="1.7" ry="3.4" fill="#fff" opacity=".2"/>
+      </svg>
+      Boogle
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links" id="nav-links">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#client">Client</a>
+      <a href="#api">API</a>
+      <a class="nav-cta" href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-plane" aria-hidden="true"></div>
+    <div class="hero-content">
+      <div class="hero-brand">Boogle<span>.</span></div>
+      <h1>Catch every exception before your users do.</h1>
+      <p>Self-hosted exception tracker and uptime monitor for Laravel apps. Real-time ingestion, issue codes, digests, and outage alerts — on your own infrastructure.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#install">Quick start</a>
+        <a class="btn btn-ghost" href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+    </div>
+    <div class="hero-terminal" aria-hidden="true">
+      <div class="hero-terminal-inner">
+        <div><span class="prompt">$</span> php artisan boogle:test</div>
+        <div class="dim">POST /api/log · project key + token</div>
+        <div class="ok">✓ Connected — exception ingested as <span class="val">#BUG42</span></div>
+        <div><span class="prompt">$</span> php artisan projects:check-uptime</div>
+        <div class="fail">✗ shop.example.com unreachable · ProjectOfflineException</div>
+        <div class="dim">Email alert queued · status OPEN</div>
+        <div><span class="prompt">$</span> <span class="caret"></span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="docs" id="docs">
+    <aside class="docs-nav" aria-label="Documentation">
+      <div class="docs-nav-label">Documentation</div>
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#quickstart">Quick start</a>
+      <a href="#client">Client apps</a>
+      <a href="#uptime">Uptime</a>
+      <a href="#api">Admin API</a>
+      <a href="#scheduler">Scheduler</a>
+      <a href="#production">Production</a>
+    </aside>
+
+    <div class="docs-main">
+      <section id="features">
+        <h2>Features</h2>
+        <p class="lead">Everything you need to monitor exceptions and uptime — without SaaS billing or vendor lock-in.</p>
+        <div class="feature-list">
+          <div class="feature-row">
+            <div class="name">Exception ingestion</div>
+            <div class="desc"><code>POST /api/log</code> accepts the full client <code>exception</code> payload — HTTP context, user, stack — persisted as <code>raw_exception</code> with mapped columns.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Issue codes</div>
+            <div class="desc">Auto-assigned codes like <code>#BUG42</code> or <code>#OUT3</code> from group prefixes, with outages always mapped to <code>OUT</code>.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Panel &amp; workflow</div>
+            <div class="desc">Projects, groups, users, 2FA, API tokens, status transitions, bulk actions, and optional public shares at <code>/e/{hash}</code>.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Uptime monitoring</div>
+            <div class="desc">Per-project pings, <code>ProjectOfflineException</code> on failure, auto-recovery to <code>DONE</code>, and email alerts for outage and restore.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Digests &amp; pruning</div>
+            <div class="desc">Scheduled exception digests every minute; exceptions pruned after 24 months; uptime history kept for 30 days.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Admin REST API</div>
+            <div class="desc">Sanctum-protected CRUD for projects, groups, and exceptions. OpenAPI UI at <code>/api/docs</code>.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Privacy toggles</div>
+            <div class="desc">Hide HTTP headers or session data in the panel via <code>config/boogle.php</code> / <code>.env</code>.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Client package</div>
+            <div class="desc"><code>andreapollastri/boogle-client</code> wires Laravel 9–13 apps to your Boogle instance in a few lines.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="install">
+        <h2>Install</h2>
+        <p class="lead">PHP 8.3+, Composer, and Node. Any SQL database Laravel supports.</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>git clone https://github.com/andreapollastri/boogle.git
+cd boogle
+composer run setup</pre>
+        </div>
+        <p>The <code>setup</code> script installs Composer deps, creates <code>.env</code>, generates the app key, migrates, installs npm packages, and builds assets.</p>
+        <h3>Manual install</h3>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --force
+npm install --ignore-scripts
+npm run build</pre>
+        </div>
+      </section>
+
+      <section id="quickstart">
+        <h2>Quick start</h2>
+        <p class="lead">From zero to a running panel in three steps.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">01</div>
+            <div>
+              <h3>Install &amp; run</h3>
+              <p>Clone the repo, run <code>composer run setup</code>, then start the stack with <code>composer run dev</code>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="n">02</div>
+            <div>
+              <h3>Sign in</h3>
+              <p>Default seeder admin: <code>admin@users.test</code> / <code>password</code>. The app root redirects to login.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="n">03</div>
+            <div>
+              <h3>Create a project</h3>
+              <p>Add a project, open <strong>Installation</strong> for key + token, then wire a client app (next section).</p>
+            </div>
+          </div>
+        </div>
+        <h3>Local stack</h3>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>composer run dev</pre>
+        </div>
+        <p>Starts the web server, queue listener, log tail, and Vite. For scheduler locally, also run <code>php artisan schedule:work</code>.</p>
+      </section>
+
+      <section id="client">
+        <h2>Client apps</h2>
+        <p class="lead">Send exceptions from another Laravel application into this Boogle instance.</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>composer require andreapollastri/boogle-client
+php artisan boogle:install</pre>
+        </div>
+        <p>Set env vars from the project <strong>Installation</strong> page:</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>BOOGLE_KEY=&lt;project_api_token&gt;
+BOOGLE_PROJECT_KEY=&lt;project_key&gt;
+BOOGLE_SERVER=https://your-boogle-host.example/api/log</pre>
+        </div>
+        <h3>Laravel 11+</h3>
+        <p>In <code>bootstrap/app.php</code>:</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>->withExceptions(function (Exceptions $exceptions) {
+    Boogle::registerExceptionHandler($exceptions);
+})</pre>
+        </div>
+        <h3>Laravel 9 / 10</h3>
+        <p>In <code>app/Exceptions/Handler.php</code> <code>register()</code>:</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>$this->reportable(function (Throwable $e) {
+    Boogle::handle($e);
+});</pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Laravel</th>
+                <th>Where</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>11+</td>
+                <td><code>bootstrap/app.php</code> → <code>withExceptions</code></td>
+              </tr>
+              <tr>
+                <td>9 / 10</td>
+                <td><code>Handler::register()</code> → <code>reportable</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Verify with:</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>php artisan boogle:test</pre>
+        </div>
+        <div class="note">
+          <strong>Payload:</strong> the client posts <code>key</code> + <code>token</code> + full <code>exception</code> object. Boogle stores it in <code>raw_exception</code> and maps <code>http</code> / <code>user</code> for the panel.
+        </div>
+      </section>
+
+      <section id="uptime">
+        <h2>Uptime</h2>
+        <p class="lead">Each project can ping a URL and open an outage issue when it fails.</p>
+        <ul>
+          <li><code>uptime_enabled</code> — turn monitoring on or off</li>
+          <li><code>uptime_url</code> — optional; falls back to the project <code>url</code></li>
+        </ul>
+        <p>On failure Boogle records a <code>ProjectOfflineException</code> and emails. When the service returns, the issue moves to <code>DONE</code> and a recovery mail is sent. The project chart shows the last 30 days.</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>php artisan projects:check-uptime</pre>
+        </div>
+      </section>
+
+      <section id="api">
+        <h2>Admin API</h2>
+        <p class="lead">Base path <code>/api/admin</code>. Auth: <code>Bearer &lt;sanctum-token&gt;</code> from an admin user.</p>
+        <ul>
+          <li><strong>Projects</strong> — list / create / show / update / delete</li>
+          <li><strong>Groups</strong> — list / create / show / update / delete</li>
+          <li><strong>Exceptions</strong> — global list, by project, show, update status</li>
+          <li><strong>Ingestion</strong> — <code>POST /api/log</code> (project key + token, no admin bearer)</li>
+        </ul>
+        <p>Interactive docs: <code>/api/docs</code>. Spec file: <code>public/openapi.json</code> (API v1.3.0).</p>
+        <p>Create tokens from the panel profile page.</p>
+      </section>
+
+      <section id="scheduler">
+        <h2>Scheduler</h2>
+        <p class="lead">One cron entry drives digests, uptime checks, and pruning.</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>* * * * * cd /path-to-boogle &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Schedule</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>exceptions:send-digests</code></td>
+                <td>Every minute</td>
+                <td>Email digests for open issues</td>
+              </tr>
+              <tr>
+                <td><code>projects:check-uptime</code></td>
+                <td>Every minute</td>
+                <td>Ping project URLs / outage issues</td>
+              </tr>
+              <tr>
+                <td><code>exceptions:prune-old</code></td>
+                <td>Daily 02:30</td>
+                <td>Delete exceptions older than 24 months</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="production">
+        <h2>Production</h2>
+        <p class="lead">Deploy without surprises. Cache config, keep the queue and scheduler running.</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan queue:work --sleep=3 --tries=3 --timeout=120</pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Variable</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>APP_URL</code></td>
+                <td>Public HTTPS URL of this Boogle instance</td>
+              </tr>
+              <tr>
+                <td><code>APP_ENV</code> / <code>APP_DEBUG</code></td>
+                <td><code>production</code> / <code>false</code></td>
+              </tr>
+              <tr>
+                <td><code>MAIL_*</code></td>
+                <td>Required for digests and uptime alerts</td>
+              </tr>
+              <tr>
+                <td><code>QUEUE_CONNECTION</code></td>
+                <td>Use database, Redis, or similar — keep a worker online</td>
+              </tr>
+              <tr>
+                <td><code>BOOGLE_UI_SHOW_HTTP_HEADERS</code></td>
+                <td>Optional panel privacy (default true)</td>
+              </tr>
+              <tr>
+                <td><code>BOOGLE_UI_SHOW_HTTP_SESSION</code></td>
+                <td>Optional panel privacy (default true)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <strong>Queue:</strong> notifications and digests go through the queue. Use Supervisor or systemd so <code>queue:work</code> restarts automatically. See the GitHub README for sample unit files.
+        </div>
+      </section>
+
+      <div class="pair" id="cipi">
+        <h2>Deploy with Cipi</h2>
+        <p class="lead" style="margin-bottom:0">Run Boogle on any Ubuntu VPS with <a href="https://cipi.sh" target="_blank" rel="noopener" style="color:var(--signal-deep);font-weight:600;text-decoration:none">cipi.sh</a> — PHP-FPM, MariaDB, Nginx, Let's Encrypt, zero-downtime releases, and queue workers.</p>
+        <a class="btn" href="https://cipi.sh" target="_blank" rel="noopener">Explore cipi.sh →</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Open source · MIT · <a href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">GitHub</a></p>
+    <p>Made by <a href="https://web.ap.it" target="_blank" rel="noopener">Andrea Pollastri</a></p>
+  </footer>
+
+  <script>
+    (function () {
+      const hamburger = document.getElementById('hamburger');
+      const navLinks = document.getElementById('nav-links');
+
+      hamburger.addEventListener('click', () => {
+        const open = navLinks.classList.toggle('open');
+        hamburger.classList.toggle('open', open);
+        hamburger.setAttribute('aria-expanded', open);
+      });
+
+      navLinks.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => {
+          navLinks.classList.remove('open');
+          hamburger.classList.remove('open');
+          hamburger.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      async function copyText(text, button) {
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
+          button.textContent = 'Copied';
+          button.classList.add('copied');
+          setTimeout(() => {
+            button.textContent = 'Copy';
+            button.classList.remove('copied');
+          }, 1600);
+        } catch (_) {
+          button.textContent = 'Select manually';
+        }
+      }
+
+      document.querySelectorAll('[data-copy]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const pre = button.parentElement.querySelector('pre');
+          if (pre) copyText(pre.textContent, button);
+        });
+      });
+
+      const sections = [...document.querySelectorAll('.docs-main section[id]')];
+      const sideLinks = [...document.querySelectorAll('.docs-nav a')];
+
+      function setActive() {
+        const y = window.scrollY + 120;
+        let current = sections[0]?.id;
+        for (const section of sections) {
+          if (section.offsetTop <= y) current = section.id;
+        }
+        sideLinks.forEach((link) => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+        });
+      }
+
+      setActive();
+      window.addEventListener('scroll', setActive, { passive: true });
+    })();
+  </script>
+</body>
+</html>

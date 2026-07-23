@@ -10,6 +10,6 @@ class HomeController extends Controller
             return redirect()->route('panel.dashboard');
         }
 
-        return view('welcome');
+        return redirect()->route('login');
     }
 }
