@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Boogle — Self-hosted Exception Tracker</title>
-  <meta name="description" content="Self-hosted Laravel exception tracker and uptime monitor. Ingest bugs from your apps, group issues, get digests, and keep services online — on your own infrastructure.">
+  <meta name="description"
+    content="Self-hosted Laravel exception tracker and uptime monitor. Ingest bugs from your apps, group issues, get digests, and keep services online — on your own infrastructure.">
   <meta property="og:title" content="Boogle — Self-hosted Exception Tracker">
-  <meta property="og:description" content="Catch exceptions and uptime outages before your users do. Open-source Laravel platform with client package, Admin API, and digests.">
+  <meta property="og:description"
+    content="Catch exceptions and uptime outages before your users do. Open-source Laravel platform with client package, Admin API, and digests.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://boogle.web.ap.it">
   <meta name="theme-color" content="#e11d48">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --ink: #111827;
@@ -34,7 +39,13 @@
       --docs-sidebar: 200px;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     html {
       scroll-behavior: smooth;
@@ -50,8 +61,14 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    a { color: inherit; }
-    code, pre { font-family: var(--mono); }
+    a {
+      color: inherit;
+    }
+
+    code,
+    pre {
+      font-family: var(--mono);
+    }
 
     .atmosphere {
       position: fixed;
@@ -101,7 +118,10 @@
       color: var(--ink);
     }
 
-    .nav-brand svg { width: 1.55rem; height: 1.55rem; }
+    .nav-brand svg {
+      width: 1.55rem;
+      height: 1.55rem;
+    }
 
     .nav-links {
       display: flex;
@@ -117,7 +137,9 @@
       transition: color 0.2s;
     }
 
-    .nav-links a:hover { color: var(--signal); }
+    .nav-links a:hover {
+      color: var(--signal);
+    }
 
     .nav-cta {
       display: inline-flex;
@@ -155,9 +177,17 @@
       transition: transform 0.2s, opacity 0.2s;
     }
 
-    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-    .hamburger.open span:nth-child(2) { opacity: 0; }
-    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .hamburger.open span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .hamburger.open span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .hamburger.open span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
 
     .hero {
       position: relative;
@@ -207,7 +237,9 @@
       animation: rise 0.75s ease both;
     }
 
-    .hero-brand span { color: var(--phosphor); }
+    .hero-brand span {
+      color: var(--phosphor);
+    }
 
     .hero-content h1 {
       font-family: var(--display);
@@ -221,7 +253,7 @@
       animation: rise 0.75s 0.08s ease both;
     }
 
-    .hero-content > p {
+    .hero-content>p {
       color: rgba(229, 231, 235, 0.72);
       max-width: none;
       font-size: 1.05rem;
@@ -251,7 +283,9 @@
       transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
     }
 
-    .btn:active { transform: translateY(1px); }
+    .btn:active {
+      transform: translateY(1px);
+    }
 
     .btn-primary {
       background: var(--phosphor);
@@ -296,11 +330,25 @@
       overflow-x: auto;
     }
 
-    .hero-terminal .prompt { color: var(--phosphor); }
-    .hero-terminal .dim { color: rgba(229, 231, 235, 0.45); }
-    .hero-terminal .ok { color: #86efac; }
-    .hero-terminal .fail { color: #fda4af; }
-    .hero-terminal .val { color: #7dd3fc; }
+    .hero-terminal .prompt {
+      color: var(--phosphor);
+    }
+
+    .hero-terminal .dim {
+      color: rgba(229, 231, 235, 0.45);
+    }
+
+    .hero-terminal .ok {
+      color: #86efac;
+    }
+
+    .hero-terminal .fail {
+      color: #fda4af;
+    }
+
+    .hero-terminal .val {
+      color: #7dd3fc;
+    }
 
     .caret {
       display: inline-block;
@@ -313,17 +361,31 @@
     }
 
     @keyframes blink {
-      50% { opacity: 0; }
+      50% {
+        opacity: 0;
+      }
     }
 
     @keyframes rise {
-      from { opacity: 0; transform: translateY(14px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @keyframes grid-drift {
-      from { background-position: 0 0; }
-      to { background-position: 40px 40px; }
+      from {
+        background-position: 0 0;
+      }
+
+      to {
+        background-position: 40px 40px;
+      }
     }
 
     .docs {
@@ -371,7 +433,9 @@
       background: rgba(225, 29, 72, 0.06);
     }
 
-    .docs-main { min-width: 0; }
+    .docs-main {
+      min-width: 0;
+    }
 
     .docs-main section {
       padding-bottom: 2.75rem;
@@ -402,9 +466,13 @@
     }
 
     .docs-main p,
-    .docs-main li { color: var(--ink-soft); }
+    .docs-main li {
+      color: var(--ink-soft);
+    }
 
-    .docs-main p + p { margin-top: 0.85rem; }
+    .docs-main p+p {
+      margin-top: 0.85rem;
+    }
 
     .docs-main .lead {
       font-size: 1.12rem;
@@ -418,7 +486,9 @@
       margin: 0.85rem 0 0 1.2rem;
     }
 
-    .docs-main li + li { margin-top: 0.35rem; }
+    .docs-main li+li {
+      margin-top: 0.35rem;
+    }
 
     .docs-main code {
       font-size: 0.88em;
@@ -513,7 +583,8 @@
       font-size: 0.95rem;
     }
 
-    th, td {
+    th,
+    td {
       text-align: left;
       padding: 0.7rem 0.9rem;
       border-bottom: 1px solid var(--line);
@@ -530,9 +601,13 @@
       background: rgba(17, 24, 39, 0.03);
     }
 
-    tr:last-child td { border-bottom: 0; }
+    tr:last-child td {
+      border-bottom: 0;
+    }
 
-    td code { white-space: nowrap; }
+    td code {
+      white-space: nowrap;
+    }
 
     .note {
       margin: 1.1rem 0;
@@ -543,7 +618,9 @@
       font-size: 0.97rem;
     }
 
-    .note strong { color: var(--ink); }
+    .note strong {
+      color: var(--ink);
+    }
 
     .steps {
       display: grid;
@@ -572,7 +649,9 @@
       font-size: 1.05rem;
     }
 
-    .step p { margin: 0; }
+    .step p {
+      margin: 0;
+    }
 
     .pair {
       margin-top: 3rem;
@@ -580,7 +659,9 @@
       border-top: 1px solid var(--line);
     }
 
-    .pair h2 { margin-bottom: 0.4rem; }
+    .pair h2 {
+      margin-bottom: 0.4rem;
+    }
 
     .pair .btn {
       margin-top: 1.1rem;
@@ -608,9 +689,13 @@
       font-weight: 600;
     }
 
-    footer a:hover { text-decoration: underline; }
+    footer a:hover {
+      text-decoration: underline;
+    }
 
-    footer p + p { margin-top: 0.35rem; }
+    footer p+p {
+      margin-top: 0.35rem;
+    }
 
     @media (max-width: 880px) {
       .docs {
@@ -628,7 +713,9 @@
         border-bottom: 1px solid var(--line);
       }
 
-      .docs-nav-label { width: 100%; }
+      .docs-nav-label {
+        width: 100%;
+      }
 
       .docs-nav a {
         border-left: 0;
@@ -644,7 +731,9 @@
     }
 
     @media (max-width: 720px) {
-      .hamburger { display: flex; }
+      .hamburger {
+        display: flex;
+      }
 
       .nav-links {
         display: none;
@@ -660,40 +749,56 @@
         border-bottom: 1px solid var(--line);
       }
 
-      .nav-links.open { display: flex; }
+      .nav-links.open {
+        display: flex;
+      }
 
       .nav-links a {
         padding: 0.75rem 0.25rem;
         border-bottom: 1px solid var(--line);
       }
 
-      .nav-cta { justify-content: center; margin-top: 0.5rem; border: 0; }
+      .nav-cta {
+        justify-content: center;
+        margin-top: 0.5rem;
+        border: 0;
+      }
 
-      .hero { min-height: auto; }
-      .hero-content { padding-top: 3rem; }
+      .hero {
+        min-height: auto;
+      }
+
+      .hero-content {
+        padding-top: 3rem;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="atmosphere" aria-hidden="true"></div>
 
   <nav class="nav">
     <a class="nav-brand" href="/">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="7" fill="#111827"/>
-        <ellipse cx="16" cy="18.4" rx="5.4" ry="6.6" fill="#fb7185"/>
-        <ellipse cx="16" cy="10.4" rx="3.5" ry="3.2" fill="#fda4af"/>
-        <circle cx="14.5" cy="9.9" r="0.95" fill="#111827"/>
-        <circle cx="17.5" cy="9.9" r="0.95" fill="#111827"/>
-        <path d="M14.1 8 C12.2 5.8 10.5 5.1 8.8 5.4" fill="none" stroke="#fda4af" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M17.9 8 C19.8 5.8 21.5 5.1 23.2 5.4" fill="none" stroke="#fda4af" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="8.8" cy="5.4" r="1.15" fill="#e11d48"/>
-        <circle cx="23.2" cy="5.4" r="1.15" fill="#e11d48"/>
-        <ellipse cx="10" cy="15" rx="4" ry="2.2" transform="rotate(-30 10 15)" fill="#fda4af" opacity=".55"/>
-        <ellipse cx="22" cy="15" rx="4" ry="2.2" transform="rotate(30 22 15)" fill="#fda4af" opacity=".55"/>
-        <path d="M11.2 16.6 7.2 14.8M11 19.4 6.8 19.6M11.4 22.2 7.4 24.4" fill="none" stroke="#e11d48" stroke-width="1.35" stroke-linecap="round"/>
-        <path d="M20.8 16.6 24.8 14.8M21 19.4 25.2 19.6M20.6 22.2 24.6 24.4" fill="none" stroke="#e11d48" stroke-width="1.35" stroke-linecap="round"/>
-        <ellipse cx="16" cy="17.4" rx="1.7" ry="3.4" fill="#fff" opacity=".2"/>
+        <rect width="32" height="32" rx="7" fill="#111827" />
+        <ellipse cx="16" cy="18.4" rx="5.4" ry="6.6" fill="#fb7185" />
+        <ellipse cx="16" cy="10.4" rx="3.5" ry="3.2" fill="#fda4af" />
+        <circle cx="14.5" cy="9.9" r="0.95" fill="#111827" />
+        <circle cx="17.5" cy="9.9" r="0.95" fill="#111827" />
+        <path d="M14.1 8 C12.2 5.8 10.5 5.1 8.8 5.4" fill="none" stroke="#fda4af" stroke-width="1.5"
+          stroke-linecap="round" />
+        <path d="M17.9 8 C19.8 5.8 21.5 5.1 23.2 5.4" fill="none" stroke="#fda4af" stroke-width="1.5"
+          stroke-linecap="round" />
+        <circle cx="8.8" cy="5.4" r="1.15" fill="#e11d48" />
+        <circle cx="23.2" cy="5.4" r="1.15" fill="#e11d48" />
+        <ellipse cx="10" cy="15" rx="4" ry="2.2" transform="rotate(-30 10 15)" fill="#fda4af" opacity=".55" />
+        <ellipse cx="22" cy="15" rx="4" ry="2.2" transform="rotate(30 22 15)" fill="#fda4af" opacity=".55" />
+        <path d="M11.2 16.6 7.2 14.8M11 19.4 6.8 19.6M11.4 22.2 7.4 24.4" fill="none" stroke="#e11d48"
+          stroke-width="1.35" stroke-linecap="round" />
+        <path d="M20.8 16.6 24.8 14.8M21 19.4 25.2 19.6M20.6 22.2 24.6 24.4" fill="none" stroke="#e11d48"
+          stroke-width="1.35" stroke-linecap="round" />
+        <ellipse cx="16" cy="17.4" rx="1.7" ry="3.4" fill="#fff" opacity=".2" />
       </svg>
       Boogle
     </a>
@@ -714,10 +819,12 @@
     <div class="hero-content">
       <div class="hero-brand">Boogle<span>.</span></div>
       <h1>Catch every exception before your users do.</h1>
-      <p>Self-hosted exception tracker and uptime monitor for Laravel apps. Real-time ingestion, issue codes, digests, and outage alerts — on your own infrastructure.</p>
+      <p>Self-hosted exception tracker and uptime monitor for Laravel apps. Real-time ingestion, issue codes, digests,
+        and outage alerts — on your own infrastructure.</p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#install">Quick start</a>
-        <a class="btn btn-ghost" href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">View on GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">View on
+          GitHub</a>
       </div>
     </div>
     <div class="hero-terminal" aria-hidden="true">
@@ -749,39 +856,48 @@
     <div class="docs-main">
       <section id="features">
         <h2>Features</h2>
-        <p class="lead">Everything you need to monitor exceptions and uptime — without SaaS billing or vendor lock-in.</p>
+        <p class="lead">Everything you need to monitor exceptions and uptime — without SaaS billing or vendor lock-in.
+        </p>
         <div class="feature-list">
           <div class="feature-row">
             <div class="name">Exception ingestion</div>
-            <div class="desc"><code>POST /api/log</code> accepts the full client <code>exception</code> payload — HTTP context, user, stack — persisted as <code>raw_exception</code> with mapped columns.</div>
+            <div class="desc"><code>POST /api/log</code> accepts the full client <code>exception</code> payload — HTTP
+              context, user, stack — persisted as <code>raw_exception</code> with mapped columns.</div>
           </div>
           <div class="feature-row">
             <div class="name">Issue codes</div>
-            <div class="desc">Auto-assigned codes like <code>#BUG42</code> or <code>#OUT3</code> from group prefixes, with outages always mapped to <code>OUT</code>.</div>
+            <div class="desc">Auto-assigned codes like <code>#BUG42</code> or <code>#OUT3</code> from group prefixes,
+              with outages always mapped to <code>OUT</code>.</div>
           </div>
           <div class="feature-row">
             <div class="name">Panel &amp; workflow</div>
-            <div class="desc">Projects, groups, users, 2FA, API tokens, status transitions, bulk actions, and optional public shares at <code>/e/{hash}</code>.</div>
+            <div class="desc">Projects, groups, users, 2FA, API tokens, status transitions, bulk actions, and optional
+              public shares at <code>/e/{hash}</code>.</div>
           </div>
           <div class="feature-row">
             <div class="name">Uptime monitoring</div>
-            <div class="desc">Per-project pings, <code>ProjectOfflineException</code> on failure, auto-recovery to <code>DONE</code>, and email alerts for outage and restore.</div>
+            <div class="desc">Per-project pings, <code>ProjectOfflineException</code> on failure, auto-recovery to
+              <code>DONE</code>, and email alerts for outage and restore.</div>
           </div>
           <div class="feature-row">
             <div class="name">Digests &amp; pruning</div>
-            <div class="desc">Scheduled exception digests every minute; exceptions pruned after 24 months; uptime history kept for 30 days.</div>
+            <div class="desc">Scheduled exception digests every minute; exceptions pruned after 24 months; uptime
+              history kept for 30 days.</div>
           </div>
           <div class="feature-row">
             <div class="name">Admin REST API</div>
-            <div class="desc">Sanctum-protected CRUD for projects, groups, and exceptions. OpenAPI UI at <code>/api/docs</code>.</div>
+            <div class="desc">Sanctum-protected CRUD for projects, groups, and exceptions. OpenAPI UI at
+              <code>/api/docs</code>.</div>
           </div>
           <div class="feature-row">
             <div class="name">Privacy toggles</div>
-            <div class="desc">Hide HTTP headers or session data in the panel via <code>config/boogle.php</code> / <code>.env</code>.</div>
+            <div class="desc">Hide HTTP headers or session data in the panel via <code>config/boogle.php</code> /
+              <code>.env</code>.</div>
           </div>
           <div class="feature-row">
             <div class="name">Client package</div>
-            <div class="desc"><code>andreapollastri/boogle-client</code> wires Laravel 9–13 apps to your Boogle instance in a few lines.</div>
+            <div class="desc"><code>andreapollastri/boogle-client</code> wires Laravel 9–13 apps to your Boogle instance
+              in a few lines.</div>
           </div>
         </div>
       </section>
@@ -795,7 +911,8 @@
 cd boogle
 composer run setup</pre>
         </div>
-        <p>The <code>setup</code> script installs Composer deps, creates <code>.env</code>, generates the app key, migrates, installs npm packages, and builds assets.</p>
+        <p>The <code>setup</code> script installs Composer deps, creates <code>.env</code>, generates the app key,
+          migrates, installs npm packages, and builds assets.</p>
         <h3>Manual install</h3>
         <div class="code-block">
           <button class="copy" type="button" data-copy>Copy</button>
@@ -816,21 +933,24 @@ npm run build</pre>
             <div class="n">01</div>
             <div>
               <h3>Install &amp; run</h3>
-              <p>Clone the repo, run <code>composer run setup</code>, then start the stack with <code>composer run dev</code>.</p>
+              <p>Clone the repo, run <code>composer run setup</code>, then start the stack with
+                <code>composer run dev</code>.</p>
             </div>
           </div>
           <div class="step">
             <div class="n">02</div>
             <div>
               <h3>Sign in</h3>
-              <p>Default seeder admin: <code>admin@users.test</code> / <code>password</code>. The app root redirects to login.</p>
+              <p>Default seeder admin: <code>admin@users.test</code> / <code>password</code>. The app root redirects to
+                login.</p>
             </div>
           </div>
           <div class="step">
             <div class="n">03</div>
             <div>
               <h3>Create a project</h3>
-              <p>Add a project, open <strong>Installation</strong> for key + token, then wire a client app (next section).</p>
+              <p>Add a project, open <strong>Installation</strong> for key + token, then wire a client app (next
+                section).</p>
             </div>
           </div>
         </div>
@@ -839,7 +959,8 @@ npm run build</pre>
           <button class="copy" type="button" data-copy>Copy</button>
           <pre>composer run dev</pre>
         </div>
-        <p>Starts the web server, queue listener, log tail, and Vite. For scheduler locally, also run <code>php artisan schedule:work</code>.</p>
+        <p>Starts the web server, queue listener, log tail, and Vite. For scheduler locally, also run
+          <code>php artisan schedule:work</code>.</p>
       </section>
 
       <section id="client">
@@ -899,7 +1020,9 @@ BOOGLE_SERVER=https://your-boogle-host.example/api/log</pre>
           <pre>php artisan boogle:test</pre>
         </div>
         <div class="note">
-          <strong>Payload:</strong> the client posts <code>key</code> + <code>token</code> + full <code>exception</code> object. Boogle stores it in <code>raw_exception</code> and maps <code>http</code> / <code>user</code> for the panel.
+          <strong>Payload:</strong> the client posts <code>key</code> + <code>token</code> + full <code>exception</code>
+          object. Boogle stores it in <code>raw_exception</code> and maps <code>http</code> / <code>user</code> for the
+          panel.
         </div>
       </section>
 
@@ -910,7 +1033,8 @@ BOOGLE_SERVER=https://your-boogle-host.example/api/log</pre>
           <li><code>uptime_enabled</code> — turn monitoring on or off</li>
           <li><code>uptime_url</code> — optional; falls back to the project <code>url</code></li>
         </ul>
-        <p>On failure Boogle records a <code>ProjectOfflineException</code> and emails. When the service returns, the issue moves to <code>DONE</code> and a recovery mail is sent. The project chart shows the last 30 days.</p>
+        <p>On failure Boogle records a <code>ProjectOfflineException</code> and emails. When the service returns, the
+          issue moves to <code>DONE</code> and a recovery mail is sent. The project chart shows the last 30 days.</p>
         <div class="code-block">
           <button class="copy" type="button" data-copy>Copy</button>
           <pre>php artisan projects:check-uptime</pre>
@@ -919,7 +1043,8 @@ BOOGLE_SERVER=https://your-boogle-host.example/api/log</pre>
 
       <section id="api">
         <h2>Admin API</h2>
-        <p class="lead">Base path <code>/api/admin</code>. Auth: <code>Bearer &lt;sanctum-token&gt;</code> from an admin user.</p>
+        <p class="lead">Base path <code>/api/admin</code>. Auth: <code>Bearer &lt;sanctum-token&gt;</code> from an admin
+          user.</p>
         <ul>
           <li><strong>Projects</strong> — list / create / show / update / delete</li>
           <li><strong>Groups</strong> — list / create / show / update / delete</li>
@@ -1015,20 +1140,25 @@ php artisan queue:work --sleep=3 --tries=3 --timeout=120</pre>
           </table>
         </div>
         <div class="note">
-          <strong>Queue:</strong> notifications and digests go through the queue. Use Supervisor or systemd so <code>queue:work</code> restarts automatically. See the GitHub README for sample unit files.
+          <strong>Queue:</strong> notifications and digests go through the queue. Use Supervisor or systemd so
+          <code>queue:work</code> restarts automatically. See the GitHub README for sample unit files.
         </div>
       </section>
 
       <div class="pair" id="cipi">
         <h2>Deploy with Cipi</h2>
-        <p class="lead" style="margin-bottom:0">Run Boogle on any Ubuntu VPS with <a href="https://cipi.sh" target="_blank" rel="noopener" style="color:var(--signal-deep);font-weight:600;text-decoration:none">cipi.sh</a> — PHP-FPM, MariaDB, Nginx, Let's Encrypt, zero-downtime releases, and queue workers.</p>
+        <p class="lead" style="margin-bottom:0">Run Boogle on any Ubuntu VPS with <a href="https://cipi.sh"
+            target="_blank" rel="noopener"
+            style="color:var(--signal-deep);font-weight:600;text-decoration:none">cipi.sh</a> — PHP-FPM, MariaDB, Nginx,
+          Let's Encrypt, zero-downtime releases, and queue workers.</p>
         <a class="btn" href="https://cipi.sh" target="_blank" rel="noopener">Explore cipi.sh →</a>
       </div>
     </div>
   </div>
 
   <footer>
-    <p>Open source · MIT · <a href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">GitHub</a></p>
+    <p>Open source · MIT · <a href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">GitHub</a>
+    </p>
     <p>Made by <a href="https://web.ap.it" target="_blank" rel="noopener">Andrea Pollastri</a></p>
   </footer>
 
@@ -1101,5 +1231,9 @@ php artisan queue:work --sleep=3 --tries=3 --timeout=120</pre>
       window.addEventListener('scroll', setActive, { passive: true });
     })();
   </script>
+  <script async src="https://stats.misterdev.it/i/804d96d9-021e-4d09-84e4-b347261958a0.js"></script>
+  <noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=804d96d9-021e-4d09-84e4-b347261958a0&p=/" width="1"
+      height="1" /></noscript>
 </body>
+
 </html>
