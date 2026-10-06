@@ -20,18 +20,13 @@ class ProjectController extends Controller
             : null;
         $visibleGroupIds = $user->visibleGroupsQuery()->pluck('project_groups.id');
 
-        $projects = $user->accessibleProjectsQuery()
-            ->when($selectedGroupId, function ($query) use ($selectedGroupId, $visibleGroupIds) {
-                if (! $visibleGroupIds->contains($selectedGroupId)) {
-                    abort(401);
-                }
+        if ($selectedGroupId && ! $visibleGroupIds->contains($selectedGroupId)) {
+            abort(404);
+        }
 
-                $query->where('group_id', $selectedGroupId);
-            })
-            ->withCount([
-                'exceptions as open_count' => fn ($q) => $q->where('status', 'OPEN'),
-                'exceptions as total_count',
-            ])
+        $projects = $user->accessibleProjectsQuery()
+            ->when($selectedGroupId, fn ($query) => $query->where('group_id', $selectedGroupId))
+            ->withHealth()
             ->with('group')
             ->orderBy('title')
             ->orderBy('id')
@@ -43,7 +38,12 @@ class ProjectController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('panel.projects.index', compact('projects', 'groups', 'selectedGroupId'));
+        return view('panel.projects.index', [
+            'projects' => $projects,
+            'groups' => $groups,
+            'selectedGroupId' => $selectedGroupId,
+            'activity' => $this->dailyActivity($projects->pluck('id')->all(), 14),
+        ]);
     }
 
     public function create(Request $request)
@@ -75,7 +75,7 @@ class ProjectController extends Controller
         if (! $request->user()->isAdmin()) {
             $data['group_id'] = null;
         } elseif (! empty($data['group_id']) && ! $request->user()->visibleGroupsQuery()->where('project_groups.id', $data['group_id'])->exists()) {
-            abort(401);
+            abort(403);
         }
 
         $project = Project::create($data);
@@ -141,7 +141,7 @@ class ProjectController extends Controller
             ? (int) round((float) $checkTotals30d->avg_response_ms)
             : null;
         $uptimePercent30d = $checkTotal > 0
-            ? round(100 * $checkSuccessful / $checkTotal, 1)
+            ? round(100 * $checkSuccessful / $checkTotal, 2)
             : null;
 
         $from3h = CarbonImmutable::now()->subHours(3);
@@ -217,8 +217,24 @@ class ProjectController extends Controller
             ->latest('created_at')
             ->value('created_at');
 
+        $unresolved = $project->exceptions()
+            ->whereIn('status', [ExceptionRecord::STATUS_OPEN, ExceptionRecord::STATUS_READ])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get();
+
+        $statusCounts = $project->exceptions()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         return view('panel.projects.show', [
             'project' => $project,
+            'unresolved' => $unresolved,
+            'statusCounts' => $statusCounts,
+            'last24h' => $project->exceptions()->where('created_at', '>=', now()->subDay())->count(),
+            'activity' => $this->dailyActivity([$project->id], 14)[$project->id] ?? [],
             'teamMembers' => $teamMembers
                 ->sortBy(fn ($member) => mb_strtolower($member->name))
                 ->values(),
@@ -271,7 +287,7 @@ class ProjectController extends Controller
         if (! $request->user()->isAdmin()) {
             unset($data['group_id']);
         } elseif (! empty($data['group_id']) && ! $request->user()->visibleGroupsQuery()->where('project_groups.id', $data['group_id'])->exists()) {
-            abort(401);
+            abort(403);
         }
 
         $project->update($data);
@@ -309,8 +325,52 @@ class ProjectController extends Controller
         return back()->with('success', 'Project API token regenerated.');
     }
 
+    /**
+     * Exceptions per day for each project, oldest day first.
+     *
+     * @param  list<string>  $projectIds
+     * @return array<string, list<array{date: string, label: string, total: int}>>
+     */
+    private function dailyActivity(array $projectIds, int $days): array
+    {
+        if ($projectIds === []) {
+            return [];
+        }
+
+        $from = CarbonImmutable::today()->subDays($days - 1);
+
+        $rows = ExceptionRecord::query()
+            ->whereIn('project_id', $projectIds)
+            ->where('created_at', '>=', $from)
+            ->selectRaw('project_id, DATE(created_at) as day, COUNT(*) as total')
+            ->groupBy('project_id')
+            ->groupByRaw('DATE(created_at)')
+            ->get()
+            ->groupBy('project_id');
+
+        $series = [];
+        foreach ($projectIds as $projectId) {
+            $byDay = ($rows->get($projectId) ?? collect())
+                ->keyBy(fn ($row) => Carbon::parse($row->day)->toDateString());
+
+            $series[$projectId] = collect(range(0, $days - 1))
+                ->map(function (int $offset) use ($from, $byDay) {
+                    $day = $from->addDays($offset);
+
+                    return [
+                        'date' => $day->toDateString(),
+                        'label' => $day->format('D j M'),
+                        'total' => (int) ($byDay->get($day->toDateString())?->total ?? 0),
+                    ];
+                })
+                ->all();
+        }
+
+        return $series;
+    }
+
     private function authorize(Request $request, Project $project): void
     {
-        abort_unless($request->user()->canAccessProject($project), 401);
+        abort_unless($request->user()->canAccessProject($project), 403);
     }
 }

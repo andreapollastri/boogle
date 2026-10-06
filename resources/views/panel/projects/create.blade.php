@@ -2,45 +2,47 @@
 @section('title', 'New project')
 
 @section('content')
-<x-page-header title="New project"
+<x-page-header title="New project" description="Create a project, then follow the installation guide to start reporting."
     :breadcrumbs="[['label'=>'Projects','href'=>route('panel.projects.index')],['label'=>'New project']]" />
 
-<div class="max-w-xl">
-    <div class="bg-white rounded-2xl border border-gray-200 p-6">
+<div class="max-w-2xl">
+    <div class="card p-6">
         <form method="POST" action="{{ route('panel.projects.store') }}" class="space-y-5">
             @csrf
-            <x-input name="title" label="Project name" placeholder="My Laravel App" required />
-            <x-input name="url" type="url" label="Project URL" placeholder="https://myapp.com" />
-            <div class="rounded-xl border border-gray-200 p-4 space-y-4">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <x-input name="title" label="Project name" placeholder="My Laravel App" required autofocus />
+                <x-input name="url" type="url" label="Project URL" placeholder="https://myapp.com" />
+            </div>
+            <div class="space-y-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4" x-data="{ enabled: @js((bool) old('uptime_enabled', true)) }">
                 <label class="flex items-start gap-3">
                     <input type="hidden" name="uptime_enabled" value="0">
-                    <input type="checkbox" name="uptime_enabled" value="1" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                           {{ old('uptime_enabled', true) ? 'checked' : '' }}>
+                    <input type="checkbox" name="uptime_enabled" value="1" x-model="enabled" class="mt-0.5">
                     <span>
-                        <span class="block text-sm font-medium text-gray-800">Enable uptime ping</span>
-                        <span class="block text-xs text-gray-500">Check project availability and create an exception when offline.</span>
+                        <span class="block text-sm font-medium text-gray-800">Uptime monitoring</span>
+                        <span class="block text-xs text-gray-500">Ping the URL every minute and open an outage issue when it stops responding.</span>
                     </span>
                 </label>
-                <x-input name="uptime_url" type="url" label="Custom uptime URL (optional)" placeholder="https://status.myapp.com/health" />
-                <p class="text-xs text-gray-500">If empty, uptime checks use the project URL.</p>
+                <div x-show="enabled" x-transition>
+                    <x-input name="uptime_url" type="url" label="Health-check URL (optional)" placeholder="https://myapp.com/up" hint="Leave empty to ping the project URL." />
+                </div>
             </div>
             <x-textarea name="description" label="Description" placeholder="What is this project?" />
 
             @if(auth()->user()->isAdmin() && $groups->count())
                 <div>
-                    <label for="group_id" class="block text-sm font-medium text-gray-700 mb-1.5">Group</label>
-                    <select name="group_id" id="group_id" class="block w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                    <label for="group_id" class="mb-1.5 block text-sm font-medium text-gray-700">Group</label>
+                    <select name="group_id" id="group_id" class="field">
                         <option value="">No group</option>
                         @foreach($groups as $group)
-                            <option value="{{ $group->id }}" {{ old('group_id') === $group->id ? 'selected' : '' }}>{{ $group->title }}</option>
+                            <option value="{{ $group->id }}" {{ old('group_id') === $group->id ? 'selected' : '' }}>{{ $group->title }}{{ $group->issue_prefix ? ' — #'.strtoupper($group->issue_prefix) : '' }}</option>
                         @endforeach
                     </select>
                 </div>
             @endif
 
-            <div class="flex gap-3 pt-2">
+            <div class="flex gap-3 border-t border-gray-100 pt-5">
                 <x-btn type="submit">Create project</x-btn>
-                <x-btn href="{{ route('panel.projects.index') }}" variant="secondary">Cancel</x-btn>
+                <x-btn href="{{ route('panel.projects.index') }}" variant="ghost">Cancel</x-btn>
             </div>
         </form>
     </div>

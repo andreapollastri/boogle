@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\ExceptionRecord;
 use App\Models\ExceptionStatusEvent;
 use App\Models\Project;
+use App\Support\ExceptionFilters;
+use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class ExceptionController extends Controller
 {
@@ -17,94 +20,48 @@ class ExceptionController extends Controller
         $request->validate([
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
-            'kind' => ['nullable', 'in:all,outage,bug,group'],
+            'kind' => ['nullable', 'in:'.implode(',', ExceptionFilters::KINDS)],
+            'status' => ['nullable', 'in:'.implode(',', ExceptionFilters::STATUSES)],
         ], [], [
             'date_from' => 'date from',
             'date_to' => 'date to',
         ]);
 
-        $status = $request->get('status', 'ALL');
-        $search = $request->get('search');
-        $dateFrom = $request->get('date_from');
-        $dateTo = $request->get('date_to');
-        $k = $request->get('kind');
-        $kind = in_array($k, ['outage', 'bug', 'group'], true) ? $k : 'all';
+        $filters = ExceptionFilters::fromRequest($request);
+        $request->session()->put(ExceptionFilters::sessionKey($project->id), $filters->toQuery());
 
-        if ($dateFrom && $dateTo && $dateFrom > $dateTo) {
-            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
-        }
-
-        $exceptions = $project->exceptions()
-            ->when($status && $status !== 'ALL', fn ($q) => $q->where('status', $status))
-            ->when($dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->whereDate('created_at', '<=', $dateTo))
-            ->when($kind === 'outage', fn ($q) => $q->where('issue_prefix', 'OUT'))
-            ->when($kind === 'bug', fn ($q) => $q->where('issue_prefix', 'BUG'))
-            ->when($kind === 'group', fn ($q) => $q->whereNotIn('issue_prefix', ['OUT', 'BUG']))
-            ->when($search, function ($q) use ($search) {
-                $term = trim($search);
-                if (preg_match('/^#?([A-Za-z]+)(\d+)$/', $term, $m)) {
-                    $q->where('issue_prefix', strtoupper($m[1]))
-                        ->where('issue_number', (int) $m[2]);
-                } else {
-                    $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $term).'%';
-                    $q->where(function ($q) use ($like) {
-                        $q->where('exception', 'like', $like)
-                            ->orWhere('error', 'like', $like)
-                            ->orWhere('file', 'like', $like)
-                            ->orWhere('full_url', 'like', $like)
-                            ->orWhere('host', 'like', $like)
-                            ->orWhere('class', 'like', $like);
-                    });
-                }
-            })
-            ->orderByDesc('created_at')
-            ->paginate(10)
+        $exceptions = ExceptionFilters::order($filters->apply($project->exceptions()->getQuery()))
+            ->paginate(25)
             ->withQueryString();
 
-        $counts = [
-            'all' => $project->exceptions()->count(),
-            'open' => $project->exceptions()->where('status', 'OPEN')->count(),
-            'read' => $project->exceptions()->where('status', 'READ')->count(),
-            'fixed' => $project->exceptions()->where('status', 'FIXED')->count(),
-            'done' => $project->exceptions()->where('status', 'DONE')->count(),
-        ];
+        // How many times each error on this page has been seen overall.
+        $seen = $project->exceptions()
+            ->whereIn('fingerprint', $exceptions->pluck('fingerprint')->filter()->unique())
+            ->selectRaw('fingerprint, COUNT(*) as total')
+            ->groupBy('fingerprint')
+            ->pluck('total', 'fingerprint');
 
-        $indexQuery = $request->except('page');
-        if (in_array($indexQuery['kind'] ?? 'all', ['all', ''], true) || ! isset($indexQuery['kind'])) {
-            unset($indexQuery['kind']);
+        $countsByStatus = $filters->apply($project->exceptions()->getQuery(), withStatus: false)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $counts = ['ALL' => (int) $countsByStatus->sum()];
+        foreach (ExceptionRecord::statuses() as $status) {
+            $counts[$status] = (int) ($countsByStatus[$status] ?? 0);
         }
-        $indexQuery = array_filter(
-            $indexQuery,
-            static function ($v, $k) {
-                if ($k === 'status' && is_string($v) && $v !== '') {
-                    return true;
-                }
 
-                return $v !== null && $v !== '';
-            },
-            ARRAY_FILTER_USE_BOTH
-        );
+        $sameAs = $filters->fingerprint
+            ? $project->exceptions()->where('fingerprint', $filters->fingerprint)->latest('created_at')->first()
+            : null;
 
-        return view('panel.exceptions.index', compact(
-            'project',
-            'exceptions',
-            'counts',
-            'status',
-            'search',
-            'dateFrom',
-            'dateTo',
-            'kind',
-            'indexQuery'
-        ));
+        return view('panel.exceptions.index', compact('project', 'exceptions', 'counts', 'filters', 'seen', 'sameAs'));
     }
 
     public function show(Request $request, Project $project, ExceptionRecord $exception)
     {
         $this->authorize($request, $project);
         abort_if($exception->project_id !== $project->id, 404);
-
-        $exception->load(['statusEvents.user']);
 
         if ($exception->status === ExceptionRecord::STATUS_OPEN) {
             $exception->markAs(
@@ -116,14 +73,38 @@ class ExceptionController extends Controller
             );
         }
 
-        $occurrences = ExceptionRecord::where('project_id', $project->id)
-            ->where('exception', $exception->exception)
-            ->where('id', '!=', $exception->id)
+        // Loaded after the automatic OPEN → READ transition so the history includes it.
+        $exception->load(['statusEvents.user']);
+
+        $similar = $exception->fingerprint
+            ? $project->exceptions()->where('fingerprint', $exception->fingerprint)
+            : $project->exceptions()->where('exception', $exception->exception);
+
+        $similarStats = (clone $similar)
+            ->selectRaw('COUNT(*) as total, MIN(created_at) as first_seen, MAX(created_at) as last_seen')
+            ->first();
+
+        $occurrences = (clone $similar)
+            ->whereKeyNot($exception->id)
             ->orderByDesc('created_at')
-            ->limit(10)
+            ->limit(8)
             ->get(['id', 'status', 'created_at', 'issue_prefix', 'issue_number']);
 
-        return view('panel.exceptions.show', compact('project', 'exception', 'occurrences'));
+        $filters = $this->rememberedFilters($request, $project);
+        $neighbours = $this->neighbours($project, $exception, $filters);
+
+        return view('panel.exceptions.show', [
+            'project' => $project,
+            'exception' => $exception,
+            'occurrences' => $occurrences,
+            'similar' => [
+                'total' => (int) ($similarStats->total ?? 1),
+                'first_seen' => $similarStats?->first_seen ? Carbon::parse($similarStats->first_seen) : $exception->created_at,
+                'last_seen' => $similarStats?->last_seen ? Carbon::parse($similarStats->last_seen) : $exception->created_at,
+            ],
+            'filters' => $filters,
+            'neighbours' => $neighbours,
+        ]);
     }
 
     public function markAs(Request $request, Project $project, ExceptionRecord $exception)
@@ -134,6 +115,7 @@ class ExceptionController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'in:OPEN,READ,FIXED,DONE'],
             'comment' => ['nullable', 'string', 'max:10000'],
+            'next' => ['sometimes', 'boolean'],
         ]);
 
         $changed = $exception->markAs(
@@ -143,6 +125,18 @@ class ExceptionController extends Controller
             true,
             ExceptionStatusEvent::SOURCE_PANEL
         );
+
+        if ($request->boolean('next')) {
+            $neighbours = $this->neighbours($project, $exception, $this->rememberedFilters($request, $project));
+            $target = $neighbours['older'] ?? $neighbours['newer'];
+
+            $message = $changed ? "{$exception->issue_code} set to {$validated['status']}." : null;
+
+            return $target
+                ? redirect()->route('panel.projects.exceptions.show', [$project, $target])->with('success', $message ?? 'Moved to the next issue.')
+                : redirect()->route('panel.projects.exceptions.index', [$project, ...$this->rememberedFilters($request, $project)->toQuery()])
+                    ->with('success', ($message ? $message.' ' : '').'That was the last issue in this list.');
+        }
 
         if (! $changed) {
             return back()->with('error', 'The exception is already in this state.');
@@ -162,11 +156,12 @@ class ExceptionController extends Controller
         ]);
 
         $query = $project->exceptions()->whereIn('id', $data['ids']);
+        $affected = 0;
 
         if ($data['action'] === 'delete') {
-            $deleted = $query->delete();
-            if ($deleted > 0) {
-                Project::decrementTotalExceptionsBy($project->id, (int) $deleted);
+            $affected = $query->delete();
+            if ($affected > 0) {
+                Project::decrementTotalExceptionsBy($project->id, (int) $affected);
                 Project::syncLastErrorAtFromExceptions($project->id);
             }
         } else {
@@ -182,10 +177,13 @@ class ExceptionController extends Controller
                     true,
                     ExceptionStatusEvent::SOURCE_BULK
                 );
+                $affected++;
             }
         }
 
-        return back()->with('success', 'Action applied.');
+        $label = $data['action'] === 'delete' ? 'deleted' : 'set to '.$data['action'];
+
+        return back()->with('success', trans_choice('{0} No exceptions changed.|{1} 1 exception :label.|[2,*] :count exceptions :label.', $affected, ['label' => $label]));
     }
 
     public function togglePublish(Request $request, Project $project, ExceptionRecord $exception)
@@ -210,6 +208,39 @@ class ExceptionController extends Controller
         $project = $exception->project;
 
         return view('public.exception', compact('exception', 'project'));
+    }
+
+    private function rememberedFilters(Request $request, Project $project): ExceptionFilters
+    {
+        return ExceptionFilters::fromArray(
+            (array) $request->session()->get(ExceptionFilters::sessionKey($project->id), [])
+        );
+    }
+
+    /**
+     * Newer / older exceptions in the last list the user looked at, plus the position in it.
+     *
+     * @return array{newer: ?ExceptionRecord, older: ?ExceptionRecord, position: ?int, total: int}
+     */
+    private function neighbours(Project $project, ExceptionRecord $exception, ExceptionFilters $filters): array
+    {
+        $base = fn (): Builder => $filters->apply($project->exceptions()->getQuery());
+        $at = $exception->created_at;
+
+        $after = fn (Builder $q) => $q->where(fn ($q) => $q->where('created_at', '>', $at)
+            ->orWhere(fn ($q) => $q->where('created_at', $at)->where('id', '>', $exception->id)));
+        $before = fn (Builder $q) => $q->where(fn ($q) => $q->where('created_at', '<', $at)
+            ->orWhere(fn ($q) => $q->where('created_at', $at)->where('id', '<', $exception->id)));
+
+        $total = $base()->count();
+        $inList = $base()->whereKey($exception->id)->exists();
+
+        return [
+            'newer' => ExceptionFilters::order($after($base()), 'asc')->first(['id', 'issue_prefix', 'issue_number']),
+            'older' => ExceptionFilters::order($before($base()))->first(['id', 'issue_prefix', 'issue_number']),
+            'position' => $inList ? $after($base())->count() + 1 : null,
+            'total' => $total,
+        ];
     }
 
     private function authorize(Request $request, Project $project): void

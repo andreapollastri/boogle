@@ -1,11 +1,14 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/forms';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
+@source '../**/*.js';
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @layer base {
@@ -13,8 +16,40 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
+
+    [type='checkbox'] {
+        @apply rounded border-gray-300 text-indigo-600 focus:ring-indigo-500;
+    }
+}
+
+@layer components {
+    .card {
+        @apply rounded-2xl border border-gray-200 bg-white;
+    }
+
+    .card-header {
+        @apply flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-3.5;
+    }
+
+    .card-title {
+        @apply text-sm font-semibold text-gray-900;
+    }
+
+    .field {
+        @apply block w-full rounded-lg border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20;
+    }
+
+    .kbd {
+        @apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-gray-200 bg-white px-1 font-sans text-[10px] font-medium text-gray-500 shadow-[0_1px_0_0_rgb(0_0_0/0.04)];
+    }
+
+    .code-block {
+        @apply overflow-x-auto rounded-xl bg-gray-900 p-4 font-mono text-xs leading-relaxed text-emerald-300;
+    }
 }
 
 @layer utilities {
-    [x-cloak] { display: none !important; }
+    [x-cloak] {
+        display: none !important;
+    }
 }

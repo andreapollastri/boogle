@@ -1,66 +1,18 @@
 @extends('layouts.app')
-@section('title', 'Installation')
+@section('title', 'Installation — ' . $project->title)
 
-@section('content')
-<x-page-header title="Installation guide" :description="'Set up Boogle in ' . $project->title"
-    :breadcrumbs="[
-        ['label'=>'Projects','href'=>route('panel.projects.index')],
-        ['label'=>$project->title,'href'=>route('panel.projects.show',$project)],
-        ['label'=>'Installation']
-    ]" />
-
-<div class="max-w-3xl space-y-5">
-
-    @foreach([
-        ['1', 'Install the Boogle package', null, 'composer require andreapollastri/boogle-client'],
-        ['2', 'Publish configuration', null, 'php artisan boogle:install'],
-    ] as [$n, $title, $desc, $code])
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">{{ $n }}</div>
-                <h3 class="text-sm font-semibold text-gray-900">{{ $title }}</h3>
-            </div>
-            @if($desc)<p class="text-sm text-gray-600 mb-3">{{ $desc }}</p>@endif
-            <div class="relative">
-                <pre class="bg-gray-900 text-green-400 text-xs font-mono rounded-xl p-4 overflow-x-auto">{{ $code }}</pre>
-            </div>
-        </div>
-    @endforeach
-
-    <div class="bg-white rounded-2xl border border-gray-200 p-6">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">3</div>
-            <h3 class="text-sm font-semibold text-gray-900">Add project credentials to .env</h3>
-        </div>
-        <div class="relative">
-            <pre class="bg-gray-900 text-green-400 text-xs font-mono rounded-xl p-4 overflow-x-auto">BOOGLE_KEY={{ $api_token }}
-BOOGLE_PROJECT_KEY={{ $project->key }}
-BOOGLE_SERVER={{ url('/api/log') }}</pre>
-        </div>
-        <p class="mt-3 text-xs text-gray-500">`BOOGLE_KEY` is project-specific and can be rotated from this project's settings.</p>
-    </div>
-
-    <div class="bg-white rounded-2xl border border-gray-200 p-6">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">4</div>
-            <h3 class="text-sm font-semibold text-gray-900">Report exceptions</h3>
-        </div>
-        <p class="text-sm font-medium text-gray-800 mb-2">Laravel 11+ — <code class="text-xs font-mono bg-gray-100 px-1 py-0.5 rounded">bootstrap/app.php</code></p>
-        <pre class="bg-gray-900 text-green-400 text-xs font-mono rounded-xl p-4 overflow-x-auto">use Boogle\Facade as Boogle;
+@php
+$envBlock = "BOOGLE_KEY={$api_token}\nBOOGLE_PROJECT_KEY={$project->key}\nBOOGLE_SERVER=".url('/api/log');
+$laravel11 = <<<'PHP'
+use Boogle\Facade as Boogle;
 use Illuminate\Foundation\Configuration\Exceptions;
 
 ->withExceptions(function (Exceptions $exceptions): void {
-    $exceptions->reportable(function (\Throwable $e) {
-        Boogle::handle($e);
-    });
-})->create();</pre>
-        <p class="text-sm text-gray-600 mt-3 mb-3">Or using the shorthand helper:</p>
-        <pre class="bg-gray-900 text-green-400 text-xs font-mono rounded-xl p-4 overflow-x-auto">->withExceptions(function (Exceptions $exceptions) {
     Boogle::registerExceptionHandler($exceptions);
-})</pre>
-        <p class="text-sm font-medium text-gray-800 mt-5 mb-2">Laravel 9 / 10 — <code class="text-xs font-mono bg-gray-100 px-1 py-0.5 rounded">app/Exceptions/Handler.php</code></p>
-        <p class="text-sm text-gray-600 mb-3">In the <code class="text-xs font-mono bg-gray-100 px-1 py-0.5 rounded">register()</code> method:</p>
-        <pre class="bg-gray-900 text-green-400 text-xs font-mono rounded-xl p-4 overflow-x-auto">use Boogle\Facade as Boogle;
+})
+PHP;
+$laravel10 = <<<'PHP'
+use Boogle\Facade as Boogle;
 use Throwable;
 
 public function register(): void
@@ -68,42 +20,99 @@ public function register(): void
     $this->reportable(function (Throwable $e) {
         Boogle::handle($e);
     });
-}</pre>
-        <div class="mt-4 overflow-hidden rounded-xl border border-gray-200">
-            <table class="min-w-full text-xs">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="text-left px-4 py-2 font-medium text-gray-600">Laravel version</th>
-                        <th class="text-left px-4 py-2 font-medium text-gray-600">Where to configure</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <tr>
-                        <td class="px-4 py-2 text-gray-700 font-medium">11+</td>
-                        <td class="px-4 py-2 text-gray-600 font-mono">bootstrap/app.php → withExceptions()</td>
-                    </tr>
-                    <tr>
-                        <td class="px-4 py-2 text-gray-700 font-medium">9 / 10</td>
-                        <td class="px-4 py-2 text-gray-600 font-mono">app/Exceptions/Handler.php → register()</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+}
+PHP;
+$steps = [
+    ['Install the client package', 'In the Laravel app you want to monitor.', "composer require andreapollastri/boogle-client\nphp artisan boogle:install"],
+    ['Add the project credentials to .env', 'BOOGLE_KEY is specific to this project and can be rotated from Settings.', $envBlock],
+];
+@endphp
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-6">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">5</div>
-            <h3 class="text-sm font-semibold text-gray-900">Test your setup</h3>
-        </div>
-        <pre class="bg-gray-900 text-green-400 text-xs font-mono rounded-xl p-4 overflow-x-auto">php artisan boogle:test</pre>
-    </div>
+@section('content')
+<x-project-header :project="$project" active="installation" />
 
-    <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 flex items-start gap-4">
-        <svg class="w-5 h-5 text-indigo-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <div>
-            <p class="text-sm font-medium text-indigo-900 mb-1">All set!</p>
-            <p class="text-sm text-indigo-700">Once installed, exceptions from your app will appear in Boogle automatically.</p>
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+    <ol class="space-y-4 xl:col-span-2">
+        @foreach($steps as $i => [$title, $desc, $code])
+            <li class="card p-5">
+                <div class="mb-3 flex items-center gap-3">
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">{{ $i + 1 }}</span>
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900">{{ $title }}</h3>
+                        <p class="text-xs text-gray-500">{{ $desc }}</p>
+                    </div>
+                </div>
+                <div class="relative">
+                    <pre class="code-block pr-20">{{ $code }}</pre>
+                    <x-copy-button :value="$code" class="absolute top-2.5 right-2.5 !border-white/10 !bg-white/10 !text-gray-200 hover:!bg-white/20" />
+                </div>
+            </li>
+        @endforeach
+
+        <li class="card p-5" x-data="{ tab: 'l11' }">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">3</span>
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900">Report exceptions</h3>
+                        <p class="text-xs text-gray-500">Register the reporter where your Laravel version handles exceptions.</p>
+                    </div>
+                </div>
+                <div class="inline-flex rounded-lg bg-gray-100 p-0.5 text-xs font-medium">
+                    <button type="button" @click="tab = 'l11'" :class="tab === 'l11' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'" class="rounded-md px-3 py-1">Laravel 11+</button>
+                    <button type="button" @click="tab = 'l10'" :class="tab === 'l10' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'" class="rounded-md px-3 py-1">Laravel 9 / 10</button>
+                </div>
+            </div>
+            <div x-show="tab === 'l11'">
+                <p class="mb-2 text-xs text-gray-600">In <code class="rounded bg-gray-100 px-1 py-0.5 font-mono">bootstrap/app.php</code>:</p>
+                <div class="relative">
+                    <pre class="code-block pr-20">{{ $laravel11 }}</pre>
+                    <x-copy-button :value="$laravel11" class="absolute top-2.5 right-2.5 !border-white/10 !bg-white/10 !text-gray-200 hover:!bg-white/20" />
+                </div>
+            </div>
+            <div x-show="tab === 'l10'" x-cloak>
+                <p class="mb-2 text-xs text-gray-600">In <code class="rounded bg-gray-100 px-1 py-0.5 font-mono">app/Exceptions/Handler.php</code>:</p>
+                <div class="relative">
+                    <pre class="code-block pr-20">{{ $laravel10 }}</pre>
+                    <x-copy-button :value="$laravel10" class="absolute top-2.5 right-2.5 !border-white/10 !bg-white/10 !text-gray-200 hover:!bg-white/20" />
+                </div>
+            </div>
+        </li>
+
+        <li class="card p-5">
+            <div class="mb-3 flex items-center gap-3">
+                <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">4</span>
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900">Send a test exception</h3>
+                    <p class="text-xs text-gray-500">It should appear in this project's exception list within seconds (with a running queue worker).</p>
+                </div>
+            </div>
+            <div class="relative">
+                <pre class="code-block pr-20">php artisan boogle:test</pre>
+                <x-copy-button value="php artisan boogle:test" class="absolute top-2.5 right-2.5 !border-white/10 !bg-white/10 !text-gray-200 hover:!bg-white/20" />
+            </div>
+        </li>
+    </ol>
+
+    <div class="space-y-6">
+        <div class="card p-5">
+            <h2 class="card-title mb-3">Credentials</h2>
+            <dl class="space-y-3 text-xs">
+                @foreach(['Project key' => $project->key, 'API token' => $api_token, 'Ingestion endpoint' => url('/api/log')] as $label => $value)
+                    <div>
+                        <dt class="mb-1 text-gray-500">{{ $label }}</dt>
+                        <dd class="flex items-center gap-2">
+                            <code class="min-w-0 flex-1 truncate rounded-md bg-gray-100 px-2 py-1 font-mono text-gray-800">{{ $value }}</code>
+                            <x-copy-button :value="$value" />
+                        </dd>
+                    </div>
+                @endforeach
+            </dl>
+        </div>
+
+        <div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
+            <p class="text-sm font-medium text-indigo-900">Reporting only runs in allowed environments</p>
+            <p class="mt-1 text-xs text-indigo-700">By default the client reports from <span class="font-mono">production</span> only. Adjust <span class="font-mono">environments</span> in <span class="font-mono">config/boogle.php</span> of the monitored app to test elsewhere.</p>
         </div>
     </div>
 </div>

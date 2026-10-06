@@ -12,6 +12,9 @@
     content="Catch exceptions and uptime outages before your users do. Open-source Laravel platform with client package, Admin API, and digests.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://boogle.web.ap.it">
+  <meta property="og:image" content="https://boogle.web.ap.it/screenshots/dashboard.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://boogle.web.ap.it/screenshots/dashboard.webp">
   <meta name="theme-color" content="#e11d48">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -697,6 +700,173 @@
       margin-top: 0.35rem;
     }
 
+
+    /* Product screenshots */
+    .showcase {
+      position: relative;
+      padding: 0 1.5rem;
+      margin-top: -1px;
+      background: linear-gradient(180deg, rgba(8, 10, 18, 0.92) 0, rgba(8, 10, 18, 0.92) 38%, transparent 38%);
+    }
+
+    .showcase-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    .frame {
+      display: block;
+      text-decoration: none;
+      background: #fff;
+      border: 1px solid rgba(17, 24, 39, 0.18);
+      box-shadow: 0 30px 80px -30px rgba(17, 24, 39, 0.45), 0 8px 24px -12px rgba(17, 24, 39, 0.25);
+      overflow: hidden;
+    }
+
+    .frame-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.8rem;
+      background: #f3f4f6;
+      border-bottom: 1px solid #e5e7eb;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .frame-bar i {
+      width: 0.62rem;
+      height: 0.62rem;
+      border-radius: 50%;
+      background: #d1d5db;
+    }
+
+    .frame-bar i:nth-child(1) { background: #fda4af; }
+    .frame-bar i:nth-child(2) { background: #fcd34d; }
+    .frame-bar i:nth-child(3) { background: #86efac; }
+
+    .frame-bar span {
+      margin-left: 0.75rem;
+      padding: 0.1rem 0.6rem;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      flex: 1;
+      max-width: 26rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .frame img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .showcase-caption {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.5rem 1.5rem;
+      padding: 0.9rem 0 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .showcase-caption a {
+      color: var(--signal-deep);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .tour-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin: 1.25rem 0 1rem;
+    }
+
+    .tour-tabs button {
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.42rem 0.8rem;
+      color: var(--ink-soft);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .tour-tabs button:hover {
+      border-color: var(--ink-soft);
+    }
+
+    .tour-tabs button[aria-selected="true"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--white);
+    }
+
+    .tour-panel + .tour-panel {
+      margin-top: 2rem;
+    }
+
+    .js .tour-panel + .tour-panel {
+      margin-top: 0;
+    }
+
+    .tour-panel[hidden] {
+      display: none;
+    }
+
+    .tour-panel h3 {
+      margin-top: 0;
+    }
+
+    .tour-panel p {
+      margin-bottom: 0.9rem;
+      max-width: 44rem;
+    }
+
+    .tour-panel .frame.narrow {
+      max-width: 340px;
+    }
+
+    .tour-panel .frame.medium {
+      max-width: 760px;
+    }
+
+    .shot-note {
+      margin-top: 0.6rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .kbd {
+      display: inline-block;
+      min-width: 1.6em;
+      padding: 0.05em 0.4em;
+      font-family: var(--mono);
+      font-size: 0.8em;
+      text-align: center;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      color: var(--ink);
+    }
+
+    @media (max-width: 720px) {
+      .showcase {
+        padding: 0 0.75rem;
+      }
+
+      .frame-bar span {
+        display: none;
+      }
+    }
+
     @media (max-width: 880px) {
       .docs {
         grid-template-columns: 1fr;
@@ -807,7 +977,9 @@
     </button>
     <div class="nav-links" id="nav-links">
       <a href="#features">Features</a>
+      <a href="#tour">Tour</a>
       <a href="#install">Install</a>
+      <a href="#demo">Demo</a>
       <a href="#client">Client</a>
       <a href="#api">API</a>
       <a class="nav-cta" href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">GitHub</a>
@@ -840,12 +1012,28 @@
     </div>
   </header>
 
+  <div class="showcase">
+    <div class="showcase-inner">
+      <a class="frame" href="/screenshots/dashboard.webp" target="_blank" rel="noopener" aria-label="Open the dashboard screenshot">
+        <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>boogle.example.com/dashboard</span></div>
+        <img src="/screenshots/dashboard.webp" width="2880" height="1800"
+          alt="Boogle dashboard: project and exception counters, a 14-day activity chart, the latest exceptions across projects and a list of projects that need attention">
+      </a>
+      <div class="showcase-caption">
+        <span>Real screenshots from a Boogle instance running the bundled demo data.</span>
+        <a href="#tour">Take the tour →</a>
+      </div>
+    </div>
+  </div>
+
   <div class="docs" id="docs">
     <aside class="docs-nav" aria-label="Documentation">
       <div class="docs-nav-label">Documentation</div>
       <a href="#features">Features</a>
+      <a href="#tour">Tour</a>
       <a href="#install">Install</a>
       <a href="#quickstart">Quick start</a>
+      <a href="#demo">Demo data</a>
       <a href="#client">Client apps</a>
       <a href="#uptime">Uptime</a>
       <a href="#api">Admin API</a>
@@ -862,22 +1050,37 @@
           <div class="feature-row">
             <div class="name">Exception ingestion</div>
             <div class="desc"><code>POST /api/log</code> accepts the full client <code>exception</code> payload — HTTP
-              context, user, stack — persisted as <code>raw_exception</code> with mapped columns.</div>
+              context, user, stack — persisted as <code>raw_exception</code> with mapped columns and processed on the queue.</div>
           </div>
           <div class="feature-row">
             <div class="name">Issue codes</div>
-            <div class="desc">Auto-assigned codes like <code>#BUG42</code> or <code>#OUT3</code> from group prefixes,
-              with outages always mapped to <code>OUT</code>.</div>
+            <div class="desc">Auto-assigned codes like <code>#BUG42</code> or <code>#SHOP7</code> from group prefixes,
+              with outages always mapped to <code>#OUT</code>. Paste a code anywhere to jump straight to it.</div>
           </div>
           <div class="feature-row">
-            <div class="name">Panel &amp; workflow</div>
-            <div class="desc">Projects, groups, users, 2FA, API tokens, status transitions, bulk actions, and optional
-              public shares at <code>/e/{hash}</code>.</div>
+            <div class="name">Fast triage</div>
+            <div class="desc">Open / Read / Fixed / Done in one click with an optional note, then move on to the next
+              exception automatically. <span class="kbd">J</span> <span class="kbd">K</span> step through the list you came from.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Readable context</div>
+            <div class="desc">Stack traces with application frames highlighted and vendor frames collapsed, request
+              method, URL, payload, client and affected user — plus how many times the same error was seen.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Navigation</div>
+            <div class="desc"><span class="kbd">⌘K</span> palette to jump to any project, page or issue code,
+              per-project tabs, a sidebar with live project health and cross-project search.</div>
           </div>
           <div class="feature-row">
             <div class="name">Uptime monitoring</div>
-            <div class="desc">Per-project pings, <code>ProjectOfflineException</code> on failure, auto-recovery to
-              <code>DONE</code>, and email alerts for outage and restore.</div>
+            <div class="desc">Per-project pings every minute, <code>ProjectOfflineException</code> on failure,
+              auto-recovery to <code>DONE</code>, email alerts for outage and restore, 30-day and 3-hour charts.</div>
+          </div>
+          <div class="feature-row">
+            <div class="name">Workflow</div>
+            <div class="desc">Projects, groups, users, 2FA, API tokens, bulk actions, a “latest per error” view and
+              optional read-only public shares at <code>/e/{hash}</code>.</div>
           </div>
           <div class="feature-row">
             <div class="name">Digests &amp; pruning</div>
@@ -891,14 +1094,131 @@
           </div>
           <div class="feature-row">
             <div class="name">Privacy toggles</div>
-            <div class="desc">Hide HTTP headers or session data in the panel via <code>config/boogle.php</code> /
-              <code>.env</code>.</div>
+            <div class="desc">Hide HTTP headers or session data in the panel, exports and public pages via
+              <code>config/boogle.php</code> / <code>.env</code>.</div>
           </div>
           <div class="feature-row">
             <div class="name">Client package</div>
             <div class="desc"><code>andreapollastri/boogle-client</code> wires Laravel 9–13 apps to your Boogle instance
               in a few lines.</div>
           </div>
+        </div>
+      </section>
+
+      <section id="tour">
+        <h2>Tour</h2>
+        <p class="lead">What working with Boogle looks like. Every screenshot comes from a real instance seeded with the
+          bundled demo data — the latest exceptions were sent through <code>POST /api/log</code> and processed by the
+          queue worker.</p>
+
+        <div class="tour-tabs" role="tablist" aria-label="Screens">
+          <button type="button" role="tab" aria-selected="true" aria-controls="tour-projects" id="tab-projects">Projects</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tour-overview" id="tab-overview">Project overview</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tour-exceptions" id="tab-exceptions">Exceptions</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tour-detail" id="tab-detail">Triage</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tour-palette" id="tab-palette">⌘K palette</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tour-uptime" id="tab-uptime">Uptime</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tour-install" id="tab-install">Installation</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tour-mobile" id="tab-mobile">Mobile</button>
+        </div>
+
+        <div class="tour-panel" role="tabpanel" id="tour-projects" aria-labelledby="tab-projects">
+          <h3>Every project at a glance</h3>
+          <p>Health, open exceptions and a 14-day sparkline per project. Filter instantly with <span class="kbd">/</span>,
+            narrow by group, and jump straight into triage from each card.</p>
+          <a class="frame" href="/screenshots/projects.webp" target="_blank" rel="noopener">
+            <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>boogle.example.com/projects</span></div>
+            <img src="/screenshots/projects.webp" width="2880" height="1800" loading="lazy" alt="Projects page with a card per project showing online or offline status, open and total exceptions, last error and a 14-day sparkline">
+          </a>
+        </div>
+
+        <div class="tour-panel" role="tabpanel" id="tour-overview" aria-labelledby="tab-overview">
+          <h3>One place per project</h3>
+          <p>Overview, Exceptions, Installation and Settings live behind the same tabs on every project page. The
+            overview lists what is still unresolved next to uptime, the project key and the team.</p>
+          <a class="frame" href="/screenshots/project-overview.webp" target="_blank" rel="noopener">
+            <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>boogle.example.com/projects/storefront</span></div>
+            <img src="/screenshots/project-overview.webp" width="2880" height="2360" loading="lazy" alt="Project overview with stat tiles, unresolved exceptions, 30-day uptime bars, a 3-hour response time chart, project details and team">
+          </a>
+        </div>
+
+        <div class="tour-panel" role="tabpanel" id="tour-exceptions" aria-labelledby="tab-exceptions">
+          <h3>A list built for triage</h3>
+          <p>Status tabs with live counts, search by issue code, class, message, file or URL, filters that apply as you
+            change them, and a <em>Seen ×N</em> counter for repeated errors. Toggle <strong>Latest per error</strong> to
+            collapse duplicates.</p>
+          <a class="frame" href="/screenshots/exceptions.webp" target="_blank" rel="noopener">
+            <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>boogle.example.com/projects/storefront/exceptions</span></div>
+            <img src="/screenshots/exceptions.webp" width="2880" height="1800" loading="lazy" alt="Exception list with status tabs, search and filters, and rows showing issue code, exception class, message, request path, occurrence count, status and age">
+          </a>
+          <p class="shot-note">Select rows to mark them Read, Fixed or Done, reopen or delete them in bulk:</p>
+          <a class="frame" href="/screenshots/bulk-actions.webp" target="_blank" rel="noopener">
+            <img src="/screenshots/bulk-actions.webp" width="2880" height="1800" loading="lazy" alt="Exception list with two rows selected and the bulk action bar">
+          </a>
+        </div>
+
+        <div class="tour-panel" role="tabpanel" id="tour-detail" aria-labelledby="tab-detail">
+          <h3>Everything you need to fix it</h3>
+          <p>Application frames are highlighted and vendor frames collapsed. The request, client, affected user and
+            runtime are laid out instead of dumped as JSON. Set the status from the sidebar, add a note, and Boogle opens
+            the next exception of the list you came from. Copy the whole thing as Markdown or as an AI-ready prompt.</p>
+          <a class="frame" href="/screenshots/exception.webp" target="_blank" rel="noopener">
+            <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>boogle.example.com/projects/checkout-api/exceptions/SHOP56</span></div>
+            <img src="/screenshots/exception.webp" width="2880" height="2960" loading="lazy" alt="Exception detail with summary, seen count, stack trace with collapsed vendor frames, request details, triage buttons, affected user, runtime and other occurrences">
+          </a>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Shortcut</th>
+                  <th>Where</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="kbd">⌘K</span> / <span class="kbd">Ctrl K</span></td><td>Everywhere</td><td>Open the command palette</td></tr>
+                <tr><td><span class="kbd">/</span></td><td>Lists</td><td>Focus the search box</td></tr>
+                <tr><td><span class="kbd">J</span> / <span class="kbd">K</span></td><td>Exception detail</td><td>Older / newer exception in the current list</td></tr>
+                <tr><td><span class="kbd">U</span></td><td>Exception detail</td><td>Back to the list, filters preserved</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tour-panel" role="tabpanel" id="tour-palette" aria-labelledby="tab-palette">
+          <h3>Jump anywhere</h3>
+          <p>Press <span class="kbd">⌘K</span> to search projects, pages and exceptions. Type an issue code such as
+            <code>#OUT3</code> and Boogle opens it directly.</p>
+          <a class="frame" href="/screenshots/command-palette.webp" target="_blank" rel="noopener">
+            <img src="/screenshots/command-palette.webp" width="2880" height="1800" loading="lazy" alt="Command palette over the dashboard, filtering projects for the query shop">
+          </a>
+        </div>
+
+        <div class="tour-panel" role="tabpanel" id="tour-uptime" aria-labelledby="tab-uptime">
+          <h3>Uptime that tells a story</h3>
+          <p>One check per minute, 30 days of daily bars and a 3-hour response time chart. This project has been
+            offline for the last few minutes — the outage issue opened itself and will close itself on recovery.</p>
+          <a class="frame medium" href="/screenshots/uptime.webp" target="_blank" rel="noopener">
+            <img src="/screenshots/uptime.webp" width="1478" height="804" loading="lazy" alt="Uptime card with 30 daily bars and a 3-hour response time chart ending in failed checks">
+          </a>
+        </div>
+
+        <div class="tour-panel" role="tabpanel" id="tour-install" aria-labelledby="tab-install">
+          <h3>Copy, paste, done</h3>
+          <p>The installation tab shows the exact <code>.env</code> block for the project, with copy buttons for every
+            command and snippet for Laravel 11+ and 9/10.</p>
+          <a class="frame" href="/screenshots/installation.webp" target="_blank" rel="noopener">
+            <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>boogle.example.com/projects/storefront/installation</span></div>
+            <img src="/screenshots/installation.webp" width="2880" height="1800" loading="lazy" alt="Installation guide with numbered steps, code blocks with copy buttons and the project credentials">
+          </a>
+        </div>
+
+        <div class="tour-panel" role="tabpanel" id="tour-mobile" aria-labelledby="tab-mobile">
+          <h3>On call, on your phone</h3>
+          <p>The panel works at phone width, with the same search button in the top bar.</p>
+          <a class="frame narrow" href="/screenshots/mobile-dashboard.webp" target="_blank" rel="noopener">
+            <img src="/screenshots/mobile-dashboard.webp" width="780" height="1688" loading="lazy" alt="Dashboard on a phone">
+          </a>
         </div>
       </section>
 
@@ -923,6 +1243,13 @@ php artisan migrate --force
 npm install --ignore-scripts
 npm run build</pre>
         </div>
+        <h3>Run the tests</h3>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>composer test</pre>
+        </div>
+        <p>The suite runs on an in-memory SQLite database: ingestion, access control, triage, filters, search and
+          uptime checks.</p>
       </section>
 
       <section id="quickstart">
@@ -941,8 +1268,8 @@ npm run build</pre>
             <div class="n">02</div>
             <div>
               <h3>Sign in</h3>
-              <p>Default seeder admin: <code>admin@users.test</code> / <code>password</code>. The app root redirects to
-                login.</p>
+              <p>Default seeder admin: <code>admin@users.test</code> / <code>password</code>. Change the password right
+                away from <strong>Profile</strong>.</p>
             </div>
           </div>
           <div class="step">
@@ -961,6 +1288,24 @@ npm run build</pre>
         </div>
         <p>Starts the web server, queue listener, log tail, and Vite. For scheduler locally, also run
           <code>php artisan schedule:work</code>.</p>
+      </section>
+
+      <section id="demo">
+        <h2>Demo data</h2>
+        <p class="lead">Want to see a lived-in instance before wiring your apps? Seed the bundled demo.</p>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>php artisan migrate:fresh --seed --seeder=DemoSeeder</pre>
+        </div>
+        <p>It creates six projects in three groups (with <code>#SHOP</code>, <code>#OPS</code> and <code>#BUG</code>
+          prefixes), five users, about eighty exceptions in the <code>boogle-client</code> payload format with status
+          history and notes, past and ongoing outages, and 30 days of per-minute uptime checks. Sign in as
+          <code>admin@users.test</code> / <code>password</code>.</p>
+        <div class="note">
+          <strong>Heads-up:</strong> <code>migrate:fresh</code> wipes the database. Every project, person and domain in
+          the demo is fictional (<code>example.com</code>), so don't leave the scheduler running against it — the uptime
+          checks would flag every project as offline.
+        </div>
       </section>
 
       <section id="client">
@@ -1084,7 +1429,7 @@ BOOGLE_SERVER=https://your-boogle-host.example/api/log</pre>
               </tr>
               <tr>
                 <td><code>exceptions:prune-old</code></td>
-                <td>Daily 02:30</td>
+                <td>Daily 04:00</td>
                 <td>Delete exceptions older than 24 months</td>
               </tr>
             </tbody>
@@ -1164,6 +1509,34 @@ php artisan queue:work --sleep=3 --tries=3 --timeout=120</pre>
 
   <script>
     (function () {
+      document.documentElement.classList.add('js');
+
+      // Tour tabs: without JavaScript every screenshot is shown stacked.
+      const tabs = [...document.querySelectorAll('.tour-tabs [role="tab"]')];
+      const panels = tabs.map((tab) => document.getElementById(tab.getAttribute('aria-controls')));
+
+      function selectTab(index, focus = false) {
+        tabs.forEach((tab, i) => {
+          const selected = i === index;
+          tab.setAttribute('aria-selected', String(selected));
+          tab.tabIndex = selected ? 0 : -1;
+          panels[i].hidden = !selected;
+        });
+        if (focus) tabs[index].focus();
+      }
+
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => selectTab(i));
+        tab.addEventListener('keydown', (event) => {
+          const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+          if (step) {
+            event.preventDefault();
+            selectTab((i + step + tabs.length) % tabs.length, true);
+          }
+        });
+      });
+      if (tabs.length) selectTab(0);
+
       const hamburger = document.getElementById('hamburger');
       const navLinks = document.getElementById('nav-links');
 

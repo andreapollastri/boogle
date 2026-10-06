@@ -9,6 +9,7 @@ use App\Http\Controllers\Panel\ExceptionController;
 use App\Http\Controllers\Panel\GroupController;
 use App\Http\Controllers\Panel\ProfileController;
 use App\Http\Controllers\Panel\ProjectController;
+use App\Http\Controllers\Panel\SearchController;
 use App\Http\Controllers\Panel\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +36,7 @@ Route::post('logout', [LoginController::class, 'destroy'])
 // Panel (authenticated) at root
 Route::middleware(['auth', 'twofactor'])->name('panel.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/search', SearchController::class)->name('search');
 
     Route::resource('projects', ProjectController::class);
     Route::get('projects/{project}/installation', [ProjectController::class, 'installation'])

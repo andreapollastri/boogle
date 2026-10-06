@@ -13,7 +13,8 @@ class GroupController extends Controller
     {
         $groups = $request->user()
             ->visibleGroupsQuery()
-            ->withCount('projects')
+            ->withCount(['projects', 'assignedUsers'])
+            ->with(['projects' => fn ($q) => $q->select('id', 'title', 'group_id')->orderBy('title')])
             ->orderBy('title')
             ->orderBy('id')
             ->get();

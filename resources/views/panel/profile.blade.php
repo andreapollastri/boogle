@@ -29,7 +29,7 @@
         <form method="POST" action="{{ route('panel.profile.password') }}" class="space-y-5">
             @csrf @method('PATCH')
             <x-input name="current_password" type="password" label="Current password" required />
-            <x-input name="password" type="password" label="New password" hint="Minimum 8 characters" required />
+            <x-input name="password" type="password" label="New password" hint="At least 8 characters, with upper and lower case letters, a number and a symbol." required />
             <x-input name="password_confirmation" type="password" label="Confirm new password" required />
             <x-btn type="submit">Update password</x-btn>
         </form>

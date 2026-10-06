@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -77,6 +78,39 @@ class Project extends Model
         return $this->belongsTo(ProjectGroup::class);
     }
 
+    /**
+     * Add open_count, unresolved_count and is_offline (an outage still in progress).
+     */
+    public function scopeWithHealth(Builder $query): Builder
+    {
+        return $query
+            ->withCount([
+                'exceptions as open_count' => fn ($q) => $q->where('status', ExceptionRecord::STATUS_OPEN),
+                'exceptions as unresolved_count' => fn ($q) => $q->whereIn('status', [ExceptionRecord::STATUS_OPEN, ExceptionRecord::STATUS_READ]),
+            ])
+            ->withExists([
+                'exceptions as is_offline' => fn ($q) => $q->where('exception', 'ProjectOfflineException')
+                    ->whereIn('status', [ExceptionRecord::STATUS_OPEN, ExceptionRecord::STATUS_READ, ExceptionRecord::STATUS_FIXED]),
+            ]);
+    }
+
+    /**
+     * online | offline | disabled — needs scopeWithHealth() to avoid an extra query.
+     */
+    public function healthStatus(): string
+    {
+        if (! $this->uptime_enabled) {
+            return 'disabled';
+        }
+
+        $offline = $this->is_offline ?? $this->exceptions()
+            ->where('exception', 'ProjectOfflineException')
+            ->whereIn('status', [ExceptionRecord::STATUS_OPEN, ExceptionRecord::STATUS_READ, ExceptionRecord::STATUS_FIXED])
+            ->exists();
+
+        return $offline ? 'offline' : 'online';
+    }
+
     public function getOpenExceptionsCountAttribute(): int
     {
         return $this->exceptions()->where('status', 'OPEN')->count();
@@ -93,8 +127,11 @@ class Project extends Model
             return;
         }
 
+        // CASE instead of GREATEST(): portable across MySQL, PostgreSQL and SQLite.
+        $amount = (int) $amount;
+
         self::query()->whereKey($projectId)->update([
-            'total_exceptions' => DB::raw('GREATEST(COALESCE(total_exceptions, 0) - '.(int) $amount.', 0)'),
+            'total_exceptions' => DB::raw("CASE WHEN COALESCE(total_exceptions, 0) > {$amount} THEN COALESCE(total_exceptions, 0) - {$amount} ELSE 0 END"),
         ]);
     }
 

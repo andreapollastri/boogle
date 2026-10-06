@@ -1,15 +1,16 @@
 @props(['status'])
 
 @php
-$classes = match($status) {
-    'OPEN'  => 'bg-red-100 text-red-700',
-    'READ'  => 'bg-yellow-100 text-yellow-700',
-    'FIXED' => 'bg-blue-100 text-blue-700',
-    'DONE'  => 'bg-green-100 text-green-700',
-    default => 'bg-gray-100 text-gray-600',
+[$classes, $dot] = match($status) {
+    'OPEN'  => ['bg-red-50 text-red-700 ring-red-600/15', 'bg-red-500'],
+    'READ'  => ['bg-amber-50 text-amber-800 ring-amber-600/20', 'bg-amber-500'],
+    'FIXED' => ['bg-sky-50 text-sky-700 ring-sky-600/15', 'bg-sky-500'],
+    'DONE'  => ['bg-emerald-50 text-emerald-700 ring-emerald-600/15', 'bg-emerald-500'],
+    default => ['bg-gray-50 text-gray-600 ring-gray-500/15', 'bg-gray-400'],
 };
 @endphp
 
-<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $classes }}">
+<span {{ $attributes->merge(['class' => "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide ring-1 ring-inset $classes"]) }}>
+    <span class="size-1.5 rounded-full {{ $dot }}"></span>
     {{ $status }}
 </span>
