@@ -9,7 +9,6 @@
         "php": "^8.3",
         "andreapollastri/checkpoint": "^1.1.8",
         "bacon/bacon-qr-code": "^3.1.1",
-        "cipi/agent": "^1.5.3",
         "laravel/framework": "^13.35",
         "laravel/sanctum": "^4.3.3",
         "laravel/tinker": "^3.0.2",
