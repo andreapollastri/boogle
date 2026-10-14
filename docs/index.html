@@ -473,7 +473,9 @@
       color: var(--ink-soft);
     }
 
-    .docs-main p+p {
+    .docs-main p+p,
+    .docs-main ul+p,
+    .docs-main ol+p {
       margin-top: 0.85rem;
     }
 
@@ -1038,6 +1040,7 @@
       <a href="#uptime">Uptime</a>
       <a href="#api">Admin API</a>
       <a href="#scheduler">Scheduler</a>
+      <a href="#updates">Updates</a>
       <a href="#production">Production</a>
     </aside>
 
@@ -1402,7 +1405,7 @@ BOOGLE_SERVER=https://your-boogle-host.example/api/log</pre>
 
       <section id="scheduler">
         <h2>Scheduler</h2>
-        <p class="lead">One cron entry drives digests, uptime checks, and pruning.</p>
+        <p class="lead">One cron entry drives digests, uptime checks, pruning, and updates.</p>
         <div class="code-block">
           <button class="copy" type="button" data-copy>Copy</button>
           <pre>* * * * * cd /path-to-boogle &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</pre>
@@ -1432,8 +1435,130 @@ BOOGLE_SERVER=https://your-boogle-host.example/api/log</pre>
                 <td>Daily 04:00</td>
                 <td>Delete exceptions older than 24 months</td>
               </tr>
+              <tr>
+                <td><code>app:update pending</code></td>
+                <td>Every minute</td>
+                <td>Start the update an administrator asked for (<a href="#updates">Updates</a>)</td>
+              </tr>
+              <tr>
+                <td><code>app:update apply --auto</code></td>
+                <td>Daily 04:00</td>
+                <td>Nightly update, while automatic updates are on (time: <code>APP_UPDATE_TIME</code>)</td>
+              </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section id="updates">
+        <h2>Updates</h2>
+        <p class="lead">Boogle keeps itself on the newest build of its channel, with a database backup and rollback.</p>
+        <p>Administrators find <strong>Updates</strong> in the panel sidebar: the installed release, the newest build of the
+          channel, <strong>Check now</strong>, <strong>Update to …</strong>, <strong>Force update</strong>, the channel
+          and the nightly update.</p>
+        <ul>
+          <li><strong>Stable</strong> — the release tags (<code>1.2.3</code>; <code>v1.2.3</code> and <code>1.2</code>
+            work too) and nothing in between</li>
+          <li><strong>Beta</strong> — the head of <code>main</code>, for a server you test on</li>
+          <li><strong>Never backwards</strong> — a build is installed only when it contains the installed one. Back on
+            stable after beta, Boogle keeps its main build until a release contains it</li>
+          <li><strong>Force update</strong> — installs the newest build of the channel again, or one whose history
+            differs; never an older one</li>
+        </ul>
+        <p>Updates run every night at <code>APP_UPDATE_TIME</code> (04:00 by default) while automatic updates are on;
+          one asked for on the page starts within a minute. Both start from the <a href="#scheduler">scheduler</a>, so
+          the cron entry is required.</p>
+        <p>Each update backs up the database (SQLite, MySQL/MariaDB, PostgreSQL; the newest 5 are kept in
+          <code>storage/app/updates/backups</code>), installs the build, runs <code>composer install --no-dev</code>,
+          builds the assets only when the release does not carry <code>public/build</code>, migrates, rebuilds the
+          caches, restarts the queue workers and checks that Boogle boots. If a step fails, the previous code and the
+          database come back; the log is on the page and in <code>storage/app/updates/update.log</code>.</p>
+        <h3>Installations</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Installation</th>
+                <th>How it is updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Git checkout (<code>git clone</code>, as in <a href="#install">Install</a>)</td>
+                <td>In place: maintenance mode, detached checkout of the new build, build, migrations. Tracked files
+                  changed by hand stop the update; <strong>Force update</strong> discards them.</td>
+              </tr>
+              <tr>
+                <td>Releases of a deploy: <code>releases/</code>, <code>current</code>, <code>shared/</code> (Cipi,
+                  Deployer)</td>
+                <td>The build goes into <code>releases/&lt;build&gt;</code> next to the running one, shares its
+                  <code>.env</code> and <code>storage</code>, is built and migrated, then <code>current</code> points at
+                  it; Cipi's workers restart. A later <code>cipi deploy</code> keeps working.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>The scheduler's user runs the update: it needs <code>git</code>, <code>composer</code> (<code>npm</code> when
+          assets are built) and the database client tools (<code>mysqldump</code>/<code>mysql</code>,
+          <code>pg_dump</code>/<code>psql</code>) on its <code>PATH</code>, and write access to the application.</p>
+        <h3>Command line</h3>
+        <div class="code-block">
+          <button class="copy" type="button" data-copy>Copy</button>
+          <pre>php artisan app:update status          # the last check and the last run (JSON)
+php artisan app:update check           # what the channel would install
+php artisan app:update apply [--force] # update now
+php artisan app:update channel stable  # or beta
+php artisan app:update auto off        # or on</pre>
+        </div>
+        <h3>Configuration</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Variable</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>APP_UPDATES</code></td>
+                <td>On in production; <code>false</code> turns updates off</td>
+              </tr>
+              <tr>
+                <td><code>APP_UPDATE_REPOSITORY</code></td>
+                <td>Where builds come from (default: this GitHub repository)</td>
+              </tr>
+              <tr>
+                <td><code>APP_UPDATE_CHANNEL</code></td>
+                <td><code>stable</code> or <code>beta</code> until an administrator picks one (default stable)</td>
+              </tr>
+              <tr>
+                <td><code>APP_UPDATE_AUTO</code></td>
+                <td>Nightly update on or off until an administrator switches it (default true)</td>
+              </tr>
+              <tr>
+                <td><code>APP_UPDATE_TIME</code></td>
+                <td>When the nightly update runs, app timezone (default 04:00)</td>
+              </tr>
+              <tr>
+                <td><code>APP_UPDATE_BACKUP</code></td>
+                <td>Database backup before each update (default true)</td>
+              </tr>
+              <tr>
+                <td><code>APP_UPDATE_ASSETS</code></td>
+                <td>Build the assets when a release does not carry them (default true)</td>
+              </tr>
+              <tr>
+                <td><code>APP_UPDATE_PHP</code> / <code>_COMPOSER</code> / <code>_NPM</code> / <code>_GIT</code></td>
+                <td>Tool paths, when the scheduler's <code>PATH</code> does not have them</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <strong>Coming from before 1.0.0?</strong> Those installations don't have the updater yet: update or deploy
+          them by hand one last time (<code>git pull</code> plus the <a href="#production">production</a> steps, or
+          <code>cipi deploy</code>). From then on Boogle updates itself.
         </div>
       </section>
 
@@ -1488,6 +1613,8 @@ php artisan queue:work --sleep=3 --tries=3 --timeout=120</pre>
           <strong>Queue:</strong> notifications and digests go through the queue. Use Supervisor or systemd so
           <code>queue:work</code> restarts automatically. See the GitHub README for sample unit files.
         </div>
+        <p>Later releases install themselves from the scheduler: see <a href="#updates">Updates</a> for what the
+          scheduler's user needs.</p>
       </section>
 
       <div class="pair" id="cipi">
@@ -1502,7 +1629,9 @@ php artisan queue:work --sleep=3 --tries=3 --timeout=120</pre>
   </div>
 
   <footer>
-    <p>Open source · MIT · <a href="https://github.com/andreapollastri/boogle" target="_blank" rel="noopener">GitHub</a>
+    <p>Open source · MIT · <a href="https://github.com/andreapollastri/boogle/releases" target="_blank"
+        rel="noopener">Release 1.0.0</a> · <a href="https://github.com/andreapollastri/boogle" target="_blank"
+        rel="noopener">GitHub</a>
     </p>
     <p>Made by <a href="https://web.ap.it" target="_blank" rel="noopener">Andrea Pollastri</a></p>
   </footer>

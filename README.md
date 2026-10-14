@@ -2,6 +2,8 @@
 
 Boogle is a self-hosted Laravel platform to track application exceptions and monitor uptime.
 
+Current release: see [`VERSION`](VERSION) and the [releases](https://github.com/andreapollastri/boogle/releases).
+
 ![Boogle dashboard](docs/screenshots/dashboard.webp)
 
 > Screenshots in this README come from a real Boogle instance seeded with the bundled [demo data](#try-it-with-demo-data).
@@ -15,7 +17,6 @@ Boogle is a self-hosted Laravel platform to track application exceptions and mon
 - **Navigation**: `⌘K` command palette, per-project tabs (Overview · Exceptions · Installation · Settings), a sidebar with live project health and cross-project search.
 - **Uptime monitoring** per project, with an optional dedicated ping URL (`uptime_url`), a `ProjectOfflineException` when the project is unreachable, automatic transition to `DONE` on recovery, and email notifications for both.
 - Projects, groups, users, 2FA, API tokens, bulk actions, a “latest per error” view and optional read-only public share links.
-- **Self-updating**: stable releases or the main branch, every night or on demand from **Updates**, with a database backup and rollback.
 - Sanctum-protected **Admin API** for project/group CRUD and exception management, documented with OpenAPI at `/api/docs`.
 
 ## Tour
@@ -50,6 +51,7 @@ Boogle is a self-hosted Laravel platform to track application exceptions and mon
 - Composer
 - Node.js + npm
 - SQL database supported by Laravel (MySQL/MariaDB, PostgreSQL or SQLite)
+- For [self-updates](#updates) in production: `git`, and the database client tools (`mysqldump`/`mysql` or `pg_dump`/`psql`), for the user that runs the scheduler
 
 ## Quick Installation
 
@@ -189,6 +191,7 @@ Update `.env` with:
 - database connection (`DB_*`)
 - mailer settings (`MAIL_*`) for notifications
 - queue driver (`QUEUE_CONNECTION`)
+- optionally, the self-updates (`APP_UPDATE_*`, see [Updates](#updates))
 
 If you need a clean reset after migration changes:
 
@@ -255,6 +258,8 @@ Scheduled commands:
 - `exceptions:send-digests` every minute
 - `projects:check-uptime` every minute
 - `exceptions:prune-old` daily at `04:00` (deletes exceptions older than 24 months)
+- `app:update pending` every minute (starts the update an administrator asked for, see [Updates](#updates))
+- `app:update apply --auto` daily at `APP_UPDATE_TIME`, `04:00` by default (the nightly update, while automatic updates are on)
 
 Notes:
 
@@ -304,6 +309,13 @@ OpenAPI spec:
     - run `php artisan projects:check-uptime` manually
 - Invalid API token:
     - regenerate the project token from **Settings** and update `BOOGLE_KEY`
+- Update did not start:
+    - updates start from the scheduler: verify the cron entry (the **Updates** page warns when the scheduler has not run in the last few minutes)
+    - an installation that is neither a git checkout nor a release of a deploy, or has `APP_UPDATES=false`, is not updated (the page says so)
+- Update failed:
+    - the previous code and the database are already back in place
+    - read the log on the **Updates** page or in `storage/app/updates/update.log`
+    - common causes: `git`, `composer`, `npm` or the database client tools missing from the scheduler's `PATH` (set `APP_UPDATE_*`), or tracked files changed by hand in a git checkout (commit or discard them, or use **Force update**)
 
 ## Tech Stack
 
@@ -313,12 +325,12 @@ OpenAPI spec:
 
 ## Updates
 
-Boogle keeps itself up to date. Administrators find **Updates** in the sidebar: the installed release, the newest one, **Check now**, **Update to …** and **Force update**, the channel and the nightly update.
+Boogle keeps itself up to date. Administrators find **Updates** in the sidebar (and in the `⌘K` palette): the installed release, the newest one, **Check now**, **Update to …** and **Force update**, the channel and the nightly update. Other users don't see it.
 
-- **Channels**: *Stable* installs the release tags (`1.2.3`) and nothing in between; *Beta* follows the head of `main`, for a server you test on.
+- **Channels**: *Stable* installs the release tags (`1.2.3`; `v1.2.3` and `1.2` are accepted too) and nothing in between; *Beta* follows the head of `main`, for a server you test on.
 - **Never backwards**: a build is installed only when it contains the installed one. Back on stable after beta, Boogle keeps its main build until a release contains it. **Force update** installs the channel's newest build again (or one whose history differs), never an older one.
-- **Every night** at `APP_UPDATE_TIME` (04:00 by default) while automatic updates are on; an update asked for on the page starts within a minute. Both run from the scheduler, so the cron entry below is required.
-- **Safe**: each update backs up the database (`storage/app/updates/backups`, the newest 5 are kept), installs the build, runs `composer install --no-dev`, builds the assets when the release does not carry them, migrates, rebuilds the caches, restarts the queue workers and checks that Boogle boots. If a step fails, the previous code and the database come back. The log of the last run is on the page and in `storage/app/updates/update.log`.
+- **Every night** at `APP_UPDATE_TIME` (04:00 by default, in the application's timezone) while automatic updates are on; an update asked for on the page starts within a minute (`app:update pending` runs every minute). Both run from the scheduler, so the [cron entry](#1-cron-for-laravel-scheduler) is required.
+- **Safe**: each update backs up the database (SQLite, MySQL/MariaDB or PostgreSQL; in `storage/app/updates/backups`, the newest 5 are kept), installs the build, runs `composer install --no-dev`, builds the assets when the release does not carry `public/build` (`APP_UPDATE_ASSETS`), migrates, rebuilds the caches, restarts the queue workers and checks that Boogle boots. If a step fails, the previous code and the database come back. The log of the last run is on the page and in `storage/app/updates/update.log`.
 
 Two kinds of installation update themselves:
 
@@ -327,12 +339,12 @@ Two kinds of installation update themselves:
 | A git checkout (`git clone`, as in [Quick Installation](#quick-installation)) | in place: maintenance mode, checkout of the new build (detached), build, migrations. Tracked files changed by hand stop the update; **Force update** discards them. |
 | A release of a deploy: `releases/<x>`, `current`, `shared/` ([Cipi](https://cipi.sh), Deployer) | the new build is cloned into `releases/<build>` next to the running one, shares its `.env` and `storage`, is built and migrated, then `current` points at it; Cipi's workers restart. A later `cipi deploy` keeps working as before. |
 
-The scheduler's user runs the update, so it needs `git`, `composer` and the database client (`mysqldump`/`mysql`, `pg_dump`/`psql`) on its `PATH`, and write access to the application. From the command line:
+The scheduler's user runs the update, so it needs `git`, `composer` (`npm` when the assets are built) and the database client (`mysqldump`/`mysql`, `pg_dump`/`psql`) on its `PATH`, and write access to the application. From the command line:
 
 ```bash
 php artisan app:update status          # what the last check and the last run said (JSON)
 php artisan app:update check           # what the channel would install
-php artisan app:update apply [--force] # update now
+php artisan app:update apply [--force] # update now (--auto: only while automatic updates are on, as the nightly run)
 php artisan app:update channel stable  # or beta
 php artisan app:update auto off        # or on
 ```
@@ -346,9 +358,11 @@ php artisan app:update auto off        # or on
 | `APP_UPDATE_TIME` | `04:00` | when the nightly update runs |
 | `APP_UPDATE_BACKUP` | `true` | the database backup before each update |
 | `APP_UPDATE_ASSETS` | `true` | build the assets (`npm`) when a release does not carry them |
-| `APP_UPDATE_PHP`, `APP_UPDATE_COMPOSER`, `APP_UPDATE_NPM` | found on the `PATH` | the tools, when the scheduler's `PATH` does not have them |
+| `APP_UPDATE_PHP`, `APP_UPDATE_COMPOSER`, `APP_UPDATE_NPM`, `APP_UPDATE_GIT` | found on the `PATH` (PHP: the one running the update) | the tools, when the scheduler's `PATH` does not have them |
 
 The installed release is in the `VERSION` file.
+
+Installations from before 1.0.0 don't have the updater yet: update or deploy them by hand one last time (`git pull` and the [post-deploy checklist](#4-post-deploy-checklist), or `cipi deploy`). From then on they update themselves.
 
 ## Production Deploy
 
@@ -362,7 +376,7 @@ Add this cron entry on your server (usually with `crontab -e`):
 * * * * * cd /var/www/boogle && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-This ensures scheduled commands (including uptime checks and digest jobs) run on time.
+This ensures scheduled commands (including uptime checks, digest jobs and [updates](#updates)) run on time. Use the same user that owns the application: it runs the updates too.
 
 ### 2) Queue worker with Supervisor
 
@@ -434,3 +448,4 @@ sudo systemctl status boogle-queue
     - scheduler executes every minute
     - queue workers are online
     - mails are delivered correctly
+    - **Updates** shows the installed release and no scheduler warning: later releases install themselves
