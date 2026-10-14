@@ -10,6 +10,7 @@ use App\Http\Controllers\Panel\GroupController;
 use App\Http\Controllers\Panel\ProfileController;
 use App\Http\Controllers\Panel\ProjectController;
 use App\Http\Controllers\Panel\SearchController;
+use App\Http\Controllers\Panel\UpdateController;
 use App\Http\Controllers\Panel\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,15 @@ Route::middleware(['auth', 'twofactor'])->name('panel.')->group(function () {
         Route::get('{user}/edit', [UserController::class, 'edit'])->name('edit');
         Route::patch('{user}', [UserController::class, 'update'])->name('update');
         Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::middleware('admin')->prefix('updates')->name('updates.')->group(function () {
+        Route::get('/', [UpdateController::class, 'index'])->name('index');
+        Route::get('status', [UpdateController::class, 'status'])->name('status');
+        Route::post('check', [UpdateController::class, 'check'])->name('check');
+        Route::post('/', [UpdateController::class, 'update'])->name('update');
+        Route::patch('channel', [UpdateController::class, 'channel'])->name('channel');
+        Route::patch('automatic', [UpdateController::class, 'automatic'])->name('automatic');
     });
 
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile');

@@ -9,6 +9,7 @@ $paletteData = [
         $isAdmin ? ['title' => 'New project', 'hint' => 'Create a project', 'url' => route('panel.projects.create')] : null,
         $isAdmin ? ['title' => 'Groups', 'hint' => 'Organise projects and issue prefixes', 'url' => route('panel.groups.index')] : null,
         $isAdmin ? ['title' => 'Users', 'hint' => 'Manage access', 'url' => route('panel.users.index')] : null,
+        $isAdmin ? ['title' => 'Updates', 'hint' => 'Release, channel, nightly updates', 'url' => route('panel.updates.index')] : null,
         ['title' => 'Profile', 'hint' => 'Account, 2FA, notifications, API tokens', 'url' => route('panel.profile')],
         ['title' => 'API docs', 'hint' => 'OpenAPI reference', 'url' => route('api.docs')],
     ])),

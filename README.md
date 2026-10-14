@@ -15,6 +15,7 @@ Boogle is a self-hosted Laravel platform to track application exceptions and mon
 - **Navigation**: `⌘K` command palette, per-project tabs (Overview · Exceptions · Installation · Settings), a sidebar with live project health and cross-project search.
 - **Uptime monitoring** per project, with an optional dedicated ping URL (`uptime_url`), a `ProjectOfflineException` when the project is unreachable, automatic transition to `DONE` on recovery, and email notifications for both.
 - Projects, groups, users, 2FA, API tokens, bulk actions, a “latest per error” view and optional read-only public share links.
+- **Self-updating**: stable releases or the main branch, every night or on demand from **Updates**, with a database backup and rollback.
 - Sanctum-protected **Admin API** for project/group CRUD and exception management, documented with OpenAPI at `/api/docs`.
 
 ## Tour
@@ -309,6 +310,45 @@ OpenAPI spec:
 - Laravel 13, Sanctum
 - Blade + Alpine.js
 - Tailwind CSS 4 + Vite 8
+
+## Updates
+
+Boogle keeps itself up to date. Administrators find **Updates** in the sidebar: the installed release, the newest one, **Check now**, **Update to …** and **Force update**, the channel and the nightly update.
+
+- **Channels**: *Stable* installs the release tags (`1.2.3`) and nothing in between; *Beta* follows the head of `main`, for a server you test on.
+- **Never backwards**: a build is installed only when it contains the installed one. Back on stable after beta, Boogle keeps its main build until a release contains it. **Force update** installs the channel's newest build again (or one whose history differs), never an older one.
+- **Every night** at `APP_UPDATE_TIME` (04:00 by default) while automatic updates are on; an update asked for on the page starts within a minute. Both run from the scheduler, so the cron entry below is required.
+- **Safe**: each update backs up the database (`storage/app/updates/backups`, the newest 5 are kept), installs the build, runs `composer install --no-dev`, builds the assets when the release does not carry them, migrates, rebuilds the caches, restarts the queue workers and checks that Boogle boots. If a step fails, the previous code and the database come back. The log of the last run is on the page and in `storage/app/updates/update.log`.
+
+Two kinds of installation update themselves:
+
+| Installation | How it is updated |
+| --- | --- |
+| A git checkout (`git clone`, as in [Quick Installation](#quick-installation)) | in place: maintenance mode, checkout of the new build (detached), build, migrations. Tracked files changed by hand stop the update; **Force update** discards them. |
+| A release of a deploy: `releases/<x>`, `current`, `shared/` ([Cipi](https://cipi.sh), Deployer) | the new build is cloned into `releases/<build>` next to the running one, shares its `.env` and `storage`, is built and migrated, then `current` points at it; Cipi's workers restart. A later `cipi deploy` keeps working as before. |
+
+The scheduler's user runs the update, so it needs `git`, `composer` and the database client (`mysqldump`/`mysql`, `pg_dump`/`psql`) on its `PATH`, and write access to the application. From the command line:
+
+```bash
+php artisan app:update status          # what the last check and the last run said (JSON)
+php artisan app:update check           # what the channel would install
+php artisan app:update apply [--force] # update now
+php artisan app:update channel stable  # or beta
+php artisan app:update auto off        # or on
+```
+
+| Variable | Default | |
+| --- | --- | --- |
+| `APP_UPDATES` | on in production | `false` turns updates off |
+| `APP_UPDATE_REPOSITORY` | `https://github.com/andreapollastri/boogle.git` | where builds come from |
+| `APP_UPDATE_CHANNEL` | `stable` | the channel until an administrator picks one |
+| `APP_UPDATE_AUTO` | `true` | the nightly update until an administrator switches it |
+| `APP_UPDATE_TIME` | `04:00` | when the nightly update runs |
+| `APP_UPDATE_BACKUP` | `true` | the database backup before each update |
+| `APP_UPDATE_ASSETS` | `true` | build the assets (`npm`) when a release does not carry them |
+| `APP_UPDATE_PHP`, `APP_UPDATE_COMPOSER`, `APP_UPDATE_NPM` | found on the `PATH` | the tools, when the scheduler's `PATH` does not have them |
+
+The installed release is in the `VERSION` file.
 
 ## Production Deploy
 
